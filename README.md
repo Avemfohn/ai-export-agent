@@ -1,4 +1,4 @@
-# AI Export Agent (Yapay Zekalı İhracat Ajanı) 🤖🚀
+# AI Export Agent 🤖🚀
 
 An autonomous, multi-tenant B2B outbound sales engine designed to automate international trade lead discovery, AI-driven qualification, personalized outreach, and semantic response tracking for traditional manufacturers.
 
