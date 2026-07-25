@@ -7,6 +7,7 @@ import com.aiexportagent.global.supplier.GlobalSupplierService;
 import com.aiexportagent.tenant.lead.dto.TenantLeadResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -47,8 +48,14 @@ public class TenantLeadService {
      * Creates a new tenant_lead for the current tenant from an AI scoring
      * result. tenantId is always taken from {@link TenantContext}, never a
      * parameter — same rule as every other write path in this codebase.
+     *
+     * <p>REQUIRES_NEW: always its own short transaction, committed
+     * immediately, regardless of whether the caller happens to be running
+     * inside an ambient transaction — {@code LeadScoringService} calls this
+     * once per candidate outside any transaction of its own specifically so
+     * a slow external AI call never holds a DB connection open.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public TenantLead createAiScoredLead(
             UUID globalSupplierId,
             LeadStatus status,

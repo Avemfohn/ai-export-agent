@@ -1,7 +1,6 @@
 package com.aiexportagent.ai.scoring;
 
 import com.aiexportagent.ai.client.AiClient;
-import com.aiexportagent.ai.client.AiClientException;
 import com.aiexportagent.ai.client.AiScoringRequest;
 import com.aiexportagent.ai.client.AiScoringResult;
 import com.aiexportagent.ai.scoring.dto.LeadScoringSummaryResponse;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -47,7 +45,15 @@ public class LeadScoringService {
     @Value("${app.ai.match-threshold:60}")
     private int matchThreshold;
 
-    @Transactional
+    /**
+     * Deliberately NOT @Transactional at this level — the loop below makes a
+     * synchronous external AI HTTP call per candidate, and holding one DB
+     * transaction open across all of them would starve the connection pool
+     * once real providers are wired in. Each read call below has its own
+     * short transaction (see the called services), and
+     * {@link TenantLeadService#createAiScoredLead} opens its own
+     * REQUIRES_NEW transaction per lead, committing immediately.
+     */
     public LeadScoringSummaryResponse scoreForCurrentTenant() {
         TenantSettings settings = tenantSettingsService.getForCurrentTenant();
         Set<UUID> alreadyLinked = tenantLeadService.getLinkedGlobalSupplierIdsForCurrentTenant();
@@ -79,7 +85,11 @@ public class LeadScoringService {
                 } else {
                     rejected++;
                 }
-            } catch (AiClientException e) {
+            } catch (Exception e) {
+                // Catches both AI-call failures (AiClientException) and DB-write failures
+                // (e.g. a unique-constraint race from a concurrent trigger for this tenant) —
+                // one bad supplier shouldn't abort leads already committed for the others,
+                // now that each createAiScoredLead() call commits independently.
                 failed++;
                 log.warn("AI scoring failed for supplier {} ({}): {}",
                         supplier.getId(), supplier.getDomain(), e.getMessage());
