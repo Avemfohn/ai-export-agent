@@ -1,0 +1,79 @@
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+
+export class ApiError extends Error {
+  status: number;
+  path: string;
+
+  constructor(message: string, status: number, path: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.path = path;
+  }
+}
+
+interface RequestOptions extends RequestInit {
+  /** Query params appended to the request path. */
+  params?: Record<string, string | number | boolean | undefined>;
+}
+
+function buildUrl(path: string, params?: RequestOptions["params"]) {
+  const url = new URL(path, API_BASE_URL);
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined) url.searchParams.set(key, String(value));
+    }
+  }
+  return url.toString();
+}
+
+/**
+ * Thin fetch wrapper for the AI Export Agent backend REST API.
+ *
+ * - Uses `cache: "no-store"` by default so dashboard data is always fresh
+ *   (Sprint 1 has no auth; tenant scoping is injected server-side).
+ * - Throws a typed `ApiError` on non-2xx responses.
+ */
+export async function apiFetch<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const { params, headers, ...rest } = options;
+  const url = buildUrl(path, params);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      ...rest,
+    });
+  } catch {
+    throw new ApiError(
+      `Failed to reach backend at ${url}. Is the API running?`,
+      0,
+      path,
+    );
+  }
+
+  if (!response.ok) {
+    let message = `Request to ${path} failed with status ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body?.message) message = body.message;
+    } catch {
+      // response had no JSON body; keep default message
+    }
+    throw new ApiError(message, response.status, path);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}

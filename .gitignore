@@ -1,0 +1,30 @@
+# Java / Maven
+backend/target/
+*.class
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.pnpm-store/
+
+# Env
+.env
+.env.*.local
+**/.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker/volumes/
+
+# Logs
+*.log

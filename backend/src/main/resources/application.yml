@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-export-agent-backend
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+# Hardcoded dev tenant id used by TenantContextFilter until real tenant login
+# exists (see CLAUDE.md, Sprint 1 status). Overridable via DEV_TENANT_ID env var.
+app:
+  dev-tenant-id: ${DEV_TENANT_ID:00000000-0000-0000-0000-000000000001}
