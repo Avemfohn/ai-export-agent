@@ -27,10 +27,10 @@ export default async function LeadDetailPage({
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle className="text-lg font-semibold text-foreground">
-                {lead.supplier.companyName}
+                {lead.companyName}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                {lead.supplier.domain}
+                {lead.domain}
               </p>
             </div>
             <LeadStatusBadge status={lead.status} />
@@ -39,13 +39,13 @@ export default async function LeadDetailPage({
             <div>
               <p className="text-muted-foreground">Country</p>
               <p className="font-medium text-foreground">
-                {lead.supplier.country}
+                {lead.country}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground">Sector</p>
               <p className="font-medium text-foreground">
-                {lead.supplier.sector}
+                {lead.sector}
               </p>
             </div>
             <div>

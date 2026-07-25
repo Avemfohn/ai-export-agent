@@ -18,6 +18,7 @@ const STATUS_VARIANT: Record<
   DRAFT: "slate",
   PAUSED: "warning",
   COMPLETED: "slate",
+  ARCHIVED: "slate",
 };
 
 export function CampaignCard({ campaign }: { campaign: TenantCampaign }) {

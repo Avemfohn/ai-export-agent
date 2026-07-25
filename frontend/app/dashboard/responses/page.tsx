@@ -15,6 +15,7 @@ const INTENT_VARIANT: Record<
   NEEDS_INFO: "warning",
   OUT_OF_OFFICE: "slate",
   UNSUBSCRIBE: "destructive",
+  SPAM: "destructive",
   UNKNOWN: "slate",
 };
 
@@ -50,31 +51,34 @@ export default async function ResponsesPage() {
 
   return (
     <div className="space-y-3">
-      {responses.map((response) => (
-        <Card key={response.id}>
-          <CardContent className="flex items-start justify-between gap-4 p-4">
-            <div className="min-w-0 space-y-1">
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-foreground">
-                  {response.fromEmail}
+      {responses.map((response) => {
+        const intent = response.classifiedIntent ?? "UNKNOWN";
+        return (
+          <Card key={response.id}>
+            <CardContent className="flex items-start justify-between gap-4 p-4">
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-foreground">
+                    {response.fromEmail ?? "Unknown sender"}
+                  </p>
+                  <Badge variant={INTENT_VARIANT[intent]}>
+                    {intent.replace("_", " ")}
+                  </Badge>
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  {response.subject ?? "(no subject)"}
                 </p>
-                <Badge variant={INTENT_VARIANT[response.classifiedIntent]}>
-                  {response.classifiedIntent.replace("_", " ")}
-                </Badge>
+                <p className="truncate text-sm text-muted-foreground">
+                  {response.body ?? ""}
+                </p>
               </div>
-              <p className="text-sm font-medium text-foreground">
-                {response.subject}
+              <p className="shrink-0 text-xs text-muted-foreground">
+                {new Date(response.receivedAt).toLocaleString()}
               </p>
-              <p className="truncate text-sm text-muted-foreground">
-                {response.snippet}
-              </p>
-            </div>
-            <p className="shrink-0 text-xs text-muted-foreground">
-              {new Date(response.receivedAt).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

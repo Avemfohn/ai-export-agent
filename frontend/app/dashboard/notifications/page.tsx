@@ -12,7 +12,7 @@ const CHANNEL_VARIANT: Record<
   "success" | "slate" | "outline"
 > = {
   WHATSAPP: "success",
-  IN_APP: "slate",
+  DASHBOARD: "slate",
   EMAIL: "outline",
 };
 
@@ -51,7 +51,7 @@ export default async function NotificationsPage() {
       {notifications.map((notification) => (
         <Card
           key={notification.id}
-          className={cn(!notification.isRead && "border-primary/40")}
+          className={cn(!notification.read && "border-primary/40")}
         >
           <CardContent className="flex items-start justify-between gap-4 p-4">
             <div className="min-w-0 space-y-1">
@@ -62,16 +62,18 @@ export default async function NotificationsPage() {
                 <Badge variant={CHANNEL_VARIANT[notification.channel]}>
                   {notification.channel}
                 </Badge>
-                {!notification.isRead ? (
+                {!notification.read ? (
                   <span className="h-2 w-2 rounded-full bg-primary" />
                 ) : null}
               </div>
               <p className="text-sm text-muted-foreground">
-                {notification.message}
+                {notification.message ?? "—"}
               </p>
             </div>
             <p className="shrink-0 text-xs text-muted-foreground">
-              {new Date(notification.sentAt).toLocaleString()}
+              {notification.sentAt
+                ? new Date(notification.sentAt).toLocaleString()
+                : "—"}
             </p>
           </CardContent>
         </Card>

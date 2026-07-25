@@ -32,17 +32,17 @@ export function LeadTable({ leads }: { leads: TenantLead[] }) {
                 href={`/dashboard/leads/${lead.id}`}
                 className="hover:underline"
               >
-                {lead.supplier.companyName}
+                {lead.companyName}
               </Link>
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {lead.supplier.domain}
+              {lead.domain}
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {lead.supplier.country}
+              {lead.country}
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {lead.supplier.sector}
+              {lead.sector}
             </TableCell>
             <TableCell>
               <LeadStatusBadge status={lead.status} />

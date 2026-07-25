@@ -40,6 +40,10 @@ services:
       - backend
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      # Server-side (SSR) fetches run inside this container, where
+      # "localhost" is the frontend container itself, not the backend one —
+      # so server-side code must reach it via the Docker Compose service name.
+      INTERNAL_API_BASE_URL: http://backend:8080
     ports:
       - "3000:3000"
 

@@ -1,5 +1,15 @@
+// Server-side code (Server Components, route handlers) runs inside the
+// frontend's own container/process, so "localhost" does NOT reach the
+// backend container over the Docker network — it must use the Docker
+// Compose service name instead, via the server-only INTERNAL_API_BASE_URL.
+// Client-side (browser) code always uses NEXT_PUBLIC_API_BASE_URL, since the
+// browser runs on the host and reaches the backend via its published port.
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+  typeof window === "undefined"
+    ? (process.env.INTERNAL_API_BASE_URL ??
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      "http://localhost:8080")
+    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080");
 
 export class ApiError extends Error {
   status: number;

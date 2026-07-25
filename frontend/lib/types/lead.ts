@@ -9,20 +9,20 @@ export type LeadStatus =
   | "BOUNCED"
   | "CONVERTED";
 
-export interface GlobalSupplier {
+// Mirrors backend/.../tenant/lead/dto/TenantLeadResponse.java exactly — the
+// joined GlobalSupplier fields are flattened onto the lead response, not
+// nested under a `supplier` object.
+export interface TenantLead {
   id: string;
+  tenantCampaignId: string | null;
+  status: LeadStatus;
+  qualificationScore: number | null;
+  qualificationNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  globalSupplierId: string;
   companyName: string;
   domain: string;
   country: string;
   sector: string;
-}
-
-export interface TenantLead {
-  id: string;
-  status: LeadStatus;
-  qualificationScore: number | null;
-  qualificationNotes: string | null;
-  supplier: GlobalSupplier;
-  createdAt: string;
-  updatedAt: string;
 }

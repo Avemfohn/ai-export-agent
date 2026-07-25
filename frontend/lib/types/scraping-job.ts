@@ -1,13 +1,17 @@
+// Mirrors the scraping_jobs table CHECK constraints (see V1__initial_schema.sql)
+// and the raw ScrapingJob entity returned by ScrapingJobController.
 export type ScrapingJobStatus =
-  | "QUEUED"
+  | "PENDING"
   | "RUNNING"
   | "COMPLETED"
-  | "FAILED";
+  | "FAILED"
+  | "CANCELLED";
 
 export type ScrapingJobSource =
   | "GOOGLE_MAPS"
   | "B2B_DIRECTORY"
-  | "TRADE_FAIR_UPLOAD";
+  | "TRADE_FAIR_UPLOAD"
+  | "MANUAL";
 
 export interface ScrapingJob {
   id: string;

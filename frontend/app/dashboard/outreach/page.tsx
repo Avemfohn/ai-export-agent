@@ -17,10 +17,9 @@ const STATUS_VARIANT: Record<
   OutreachEmailStatus,
   "success" | "warning" | "slate" | "destructive"
 > = {
+  DRAFT: "slate",
   QUEUED: "warning",
-  SENT: "slate",
-  DELIVERED: "slate",
-  OPENED: "success",
+  SENT: "success",
   FAILED: "destructive",
   BOUNCED: "destructive",
 };

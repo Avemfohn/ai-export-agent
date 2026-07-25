@@ -1,4 +1,9 @@
-export type CampaignStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "COMPLETED";
+export type CampaignStatus =
+  | "DRAFT"
+  | "ACTIVE"
+  | "PAUSED"
+  | "COMPLETED"
+  | "ARCHIVED";
 
 export interface TenantCampaign {
   id: string;

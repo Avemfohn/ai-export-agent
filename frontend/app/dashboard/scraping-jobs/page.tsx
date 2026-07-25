@@ -17,10 +17,11 @@ const STATUS_VARIANT: Record<
   ScrapingJobStatus,
   "success" | "warning" | "slate" | "destructive"
 > = {
-  QUEUED: "slate",
+  PENDING: "slate",
   RUNNING: "warning",
   COMPLETED: "success",
   FAILED: "destructive",
+  CANCELLED: "slate",
 };
 
 export default async function ScrapingJobsPage() {
