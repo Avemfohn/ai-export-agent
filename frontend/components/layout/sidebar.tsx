@@ -42,8 +42,8 @@ export function Sidebar() {
         <Image
           src="/logo.png"
           alt={dict.app.name}
-          width={2816}
-          height={1536}
+          width={2600}
+          height={1418}
           priority
           className="h-8 w-auto shrink-0"
         />
