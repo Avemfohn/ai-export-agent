@@ -3,8 +3,13 @@ import { Users } from "lucide-react";
 import { LeadTable } from "@/components/leads/lead-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getLeads } from "@/lib/api/leads";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function LeadsPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   let leads: Awaited<ReturnType<typeof getLeads>> = [];
   let errored = false;
 
@@ -18,8 +23,8 @@ export default async function LeadsPage() {
     return (
       <EmptyState
         icon={Users}
-        title="Could not load leads"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.leads.errorTitle}
+        description={dict.leads.errorDescription}
       />
     );
   }
@@ -28,11 +33,11 @@ export default async function LeadsPage() {
     return (
       <EmptyState
         icon={Users}
-        title="No leads yet"
-        description="Qualified buyer leads from the global supplier pool will appear here once scraping and AI filtering have run."
+        title={dict.leads.emptyTitle}
+        description={dict.leads.emptyDescription}
       />
     );
   }
 
-  return <LeadTable leads={leads} />;
+  return <LeadTable leads={leads} dict={dict} />;
 }

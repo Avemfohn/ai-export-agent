@@ -1,5 +1,6 @@
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import type { LeadStatus } from "@/lib/types/lead";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 const STATUS_VARIANT: Record<LeadStatus, NonNullable<BadgeProps["variant"]>> = {
   PENDING_APPROVAL: "warning",
@@ -13,18 +14,14 @@ const STATUS_VARIANT: Record<LeadStatus, NonNullable<BadgeProps["variant"]>> = {
   CONVERTED: "success",
 };
 
-const STATUS_LABEL: Record<LeadStatus, string> = {
-  PENDING_APPROVAL: "Pending Approval",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  EMAIL_SENT: "Email Sent",
-  NO_RESPONSE: "No Response",
-  INTERESTED: "Interested",
-  NOT_INTERESTED: "Not Interested",
-  BOUNCED: "Bounced",
-  CONVERTED: "Converted",
-};
-
-export function LeadStatusBadge({ status }: { status: LeadStatus }) {
-  return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>;
+export function LeadStatusBadge({
+  status,
+  dict,
+}: {
+  status: LeadStatus;
+  dict: Dictionary;
+}) {
+  return (
+    <Badge variant={STATUS_VARIANT[status]}>{dict.leads.status[status]}</Badge>
+  );
 }

@@ -1,8 +1,8 @@
-# AI Export Agent
+# TargetOut AI
 
 ## 1. Project Overview
 
-AI Export Agent is a B2B SaaS that automates finding, qualifying, and emailing
+TargetOut AI is a B2B SaaS that automates finding, qualifying, and emailing
 international buyers for exporters/manufacturers. Business flow:
 
 1. **Scraping** — gather target-sector companies from Google Maps, B2B
@@ -98,6 +98,20 @@ package-by-feature under `com.aiexportagent`, split into `global` (shared
 pool, no tenant concept), `tenant` (every repo method scoped by `tenantId`),
 and `common` (cross-cutting concerns incl. `TenantContext`).
 
+**Frontend theming & translation:** dark/light mode uses `next-themes`
+(`frontend/components/providers/theme-provider.tsx`), switched from the
+Settings page only (no topbar quick-toggle). The UI is fully translatable
+between English and Turkish, selected from Settings — not URL-based (no
+`/tr/...` routes), driven by a `locale` cookie:
+`frontend/lib/i18n/dictionaries/{en,tr}.json` hold the translation keys,
+`frontend/lib/i18n/get-locale.ts` (reads the cookie) +
+`frontend/lib/i18n/dictionaries.ts` (`getDictionary()`) are used server-side
+by Server Component pages, and
+`frontend/components/providers/i18n-provider.tsx` (`useTranslations()` hook)
+serves Client Components (Sidebar, Topbar, status badges, the Settings
+switchers). See Conventions below — this is a hard rule, not just the
+current state.
+
 ## 5. How to Run Locally
 
 - Full stack: `docker compose up --build` (frontend on :3000, backend on
@@ -134,3 +148,12 @@ integrations are wired in.
 - UUID primary keys everywhere (`gen_random_uuid()`).
 - Every table has `created_at` / `updated_at` timestamps.
 - Commit messages: conventional-commit-ish, imperative mood.
+- **All new frontend UI text must go through the translation dictionaries**
+  (`frontend/lib/i18n/dictionaries/{en,tr}.json`) — no hardcoded string
+  literals in JSX. Add the key to both `en.json` and `tr.json` in the same
+  change; a key present in only one language is a bug. Server Component
+  pages call `getDictionary(await getLocale())` directly; Client Components
+  use the `useTranslations()` hook from
+  `frontend/components/providers/i18n-provider.tsx`. Status/enum badge
+  values are translated too (see `dict.leads.status`, `dict.campaigns.status`,
+  etc. for the pattern) — never render a raw backend enum string directly.

@@ -10,6 +10,8 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { ApiError } from "@/lib/api/client";
 import { getCampaign } from "@/lib/api/campaigns";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function CampaignDetailPage({
   params,
@@ -17,6 +19,8 @@ export default async function CampaignDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   try {
     const campaign = await getCampaign(id);
@@ -28,21 +32,23 @@ export default async function CampaignDetailPage({
             <CardTitle className="text-lg font-semibold text-foreground">
               {campaign.name}
             </CardTitle>
-            <Badge variant="secondary">{campaign.status}</Badge>
+            <Badge variant="secondary">
+              {dict.campaigns.status[campaign.status]}
+            </Badge>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-foreground">
-              {campaign.description ?? "No description provided."}
+              {campaign.description ?? dict.campaigns.noDescription}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Outreach Emails</CardTitle>
+            <CardTitle>{dict.campaigns.detail.outreachEmails}</CardTitle>
           </CardHeader>
           <CardContent>
-            <EmptyState title="No outreach emails linked to this campaign yet" />
+            <EmptyState title={dict.campaigns.detail.noEmails} />
           </CardContent>
         </Card>
       </div>
@@ -53,8 +59,8 @@ export default async function CampaignDetailPage({
     }
     return (
       <EmptyState
-        title="Could not load this campaign"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.campaigns.detail.errorTitle}
+        description={dict.campaigns.detail.errorDescription}
       />
     );
   }

@@ -2,26 +2,29 @@
 
 import { usePathname } from "next/navigation";
 
-const TITLES: Record<string, string> = {
-  "/dashboard": "Overview",
-  "/dashboard/leads": "Leads",
-  "/dashboard/campaigns": "Campaigns",
-  "/dashboard/outreach": "Outreach",
-  "/dashboard/responses": "Responses",
-  "/dashboard/notifications": "Notifications",
-  "/dashboard/scraping-jobs": "Scraping Jobs",
-  "/dashboard/settings": "Settings",
-};
+import { useTranslations } from "@/components/providers/i18n-provider";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
-function resolveTitle(pathname: string): string {
-  if (TITLES[pathname]) return TITLES[pathname];
+function resolveTitle(pathname: string, dict: Dictionary): string {
+  const titles: Record<string, string> = {
+    "/dashboard": dict.nav.overview,
+    "/dashboard/leads": dict.nav.leads,
+    "/dashboard/campaigns": dict.nav.campaigns,
+    "/dashboard/outreach": dict.nav.outreach,
+    "/dashboard/responses": dict.nav.responses,
+    "/dashboard/notifications": dict.nav.notifications,
+    "/dashboard/scraping-jobs": dict.nav.scrapingJobs,
+    "/dashboard/settings": dict.nav.settings,
+  };
+  if (titles[pathname]) return titles[pathname];
   const segment = pathname.split("/").filter(Boolean).at(-2) ?? "";
-  return TITLES[`/dashboard/${segment}`] ?? "Dashboard";
+  return titles[`/dashboard/${segment}`] ?? dict.topbar.dashboard;
 }
 
 export function Topbar() {
   const pathname = usePathname();
-  const title = resolveTitle(pathname);
+  const { dict } = useTranslations();
+  const title = resolveTitle(pathname, dict);
 
   return (
     <header className="flex h-16 items-center border-b border-border bg-background px-6">

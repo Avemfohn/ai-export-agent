@@ -10,6 +10,8 @@ import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ApiError } from "@/lib/api/client";
 import { getLead } from "@/lib/api/leads";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function LeadDetailPage({
   params,
@@ -17,6 +19,8 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   try {
     const lead = await getLead(id);
@@ -33,29 +37,31 @@ export default async function LeadDetailPage({
                 {lead.domain}
               </p>
             </div>
-            <LeadStatusBadge status={lead.status} />
+            <LeadStatusBadge status={lead.status} dict={dict} />
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
-              <p className="text-muted-foreground">Country</p>
+              <p className="text-muted-foreground">{dict.leads.detail.country}</p>
               <p className="font-medium text-foreground">
                 {lead.country}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Sector</p>
+              <p className="text-muted-foreground">{dict.leads.detail.sector}</p>
               <p className="font-medium text-foreground">
                 {lead.sector}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Qualification Score</p>
+              <p className="text-muted-foreground">
+                {dict.leads.detail.qualificationScore}
+              </p>
               <p className="font-medium text-foreground">
                 {lead.qualificationScore ?? "—"}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Last Updated</p>
+              <p className="text-muted-foreground">{dict.leads.detail.lastUpdated}</p>
               <p className="font-medium text-foreground">
                 {new Date(lead.updatedAt).toLocaleDateString()}
               </p>
@@ -66,7 +72,7 @@ export default async function LeadDetailPage({
         {lead.qualificationNotes ? (
           <Card>
             <CardHeader>
-              <CardTitle>Qualification Notes</CardTitle>
+              <CardTitle>{dict.leads.detail.qualificationNotes}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-foreground">
@@ -78,19 +84,19 @@ export default async function LeadDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Outreach Emails</CardTitle>
+            <CardTitle>{dict.leads.detail.outreachEmails}</CardTitle>
           </CardHeader>
           <CardContent>
-            <EmptyState title="No emails sent to this lead yet" />
+            <EmptyState title={dict.leads.detail.noEmails} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Responses</CardTitle>
+            <CardTitle>{dict.leads.detail.responses}</CardTitle>
           </CardHeader>
           <CardContent>
-            <EmptyState title="No responses recorded yet" />
+            <EmptyState title={dict.leads.detail.noResponses} />
           </CardContent>
         </Card>
       </div>
@@ -101,8 +107,8 @@ export default async function LeadDetailPage({
     }
     return (
       <EmptyState
-        title="Could not load this lead"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.leads.detail.errorTitle}
+        description={dict.leads.detail.errorDescription}
       />
     );
   }

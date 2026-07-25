@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { TenantCampaign } from "@/lib/types/campaign";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 const STATUS_VARIANT: Record<
   TenantCampaign["status"],
@@ -21,7 +22,13 @@ const STATUS_VARIANT: Record<
   ARCHIVED: "slate",
 };
 
-export function CampaignCard({ campaign }: { campaign: TenantCampaign }) {
+export function CampaignCard({
+  campaign,
+  dict,
+}: {
+  campaign: TenantCampaign;
+  dict: Dictionary;
+}) {
   return (
     <Link href={`/dashboard/campaigns/${campaign.id}`}>
       <Card className="h-full transition-shadow hover:shadow-md">
@@ -30,12 +37,12 @@ export function CampaignCard({ campaign }: { campaign: TenantCampaign }) {
             {campaign.name}
           </CardTitle>
           <Badge variant={STATUS_VARIANT[campaign.status]}>
-            {campaign.status}
+            {dict.campaigns.status[campaign.status]}
           </Badge>
         </CardHeader>
         <CardContent>
           <CardDescription>
-            {campaign.description ?? "No description provided."}
+            {campaign.description ?? dict.campaigns.noDescription}
           </CardDescription>
         </CardContent>
       </Card>

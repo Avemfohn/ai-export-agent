@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,30 +15,44 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/components/providers/i18n-provider";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/leads", label: "Leads", icon: Users },
-  { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
-  { href: "/dashboard/outreach", label: "Outreach", icon: Send },
-  { href: "/dashboard/responses", label: "Responses", icon: MessageSquareText },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/scraping-jobs", label: "Scraping Jobs", icon: Radar },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-] as const;
+function useNavItems() {
+  const { dict } = useTranslations();
+  return [
+    { href: "/dashboard", label: dict.nav.overview, icon: LayoutDashboard },
+    { href: "/dashboard/leads", label: dict.nav.leads, icon: Users },
+    { href: "/dashboard/campaigns", label: dict.nav.campaigns, icon: Megaphone },
+    { href: "/dashboard/outreach", label: dict.nav.outreach, icon: Send },
+    { href: "/dashboard/responses", label: dict.nav.responses, icon: MessageSquareText },
+    { href: "/dashboard/notifications", label: dict.nav.notifications, icon: Bell },
+    { href: "/dashboard/scraping-jobs", label: dict.nav.scrapingJobs, icon: Radar },
+    { href: "/dashboard/settings", label: dict.nav.settings, icon: Settings },
+  ] as const;
+}
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { dict } = useTranslations();
+  const navItems = useNavItems();
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
-      <div className="flex h-16 items-center border-b border-border px-6">
-        <span className="text-sm font-semibold tracking-tight text-foreground">
-          AI Export Agent
+      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
+        <Image
+          src="/logo.png"
+          alt={dict.app.name}
+          width={2816}
+          height={1536}
+          priority
+          className="h-8 w-auto shrink-0"
+        />
+        <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+          {dict.app.name}
         </span>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"

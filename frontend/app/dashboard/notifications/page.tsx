@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { getNotifications } from "@/lib/api/notifications";
 import type { NotificationChannel } from "@/lib/types/notification";
 import { cn } from "@/lib/utils";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 const CHANNEL_VARIANT: Record<
   NotificationChannel,
@@ -17,6 +19,9 @@ const CHANNEL_VARIANT: Record<
 };
 
 export default async function NotificationsPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   let notifications: Awaited<ReturnType<typeof getNotifications>> = [];
   let errored = false;
 
@@ -30,8 +35,8 @@ export default async function NotificationsPage() {
     return (
       <EmptyState
         icon={Bell}
-        title="Could not load notifications"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.notifications.errorTitle}
+        description={dict.notifications.errorDescription}
       />
     );
   }
@@ -40,8 +45,8 @@ export default async function NotificationsPage() {
     return (
       <EmptyState
         icon={Bell}
-        title="No notifications yet"
-        description="Warm-reply alerts and job status updates will appear here."
+        title={dict.notifications.emptyTitle}
+        description={dict.notifications.emptyDescription}
       />
     );
   }
@@ -60,7 +65,7 @@ export default async function NotificationsPage() {
                   {notification.title}
                 </p>
                 <Badge variant={CHANNEL_VARIANT[notification.channel]}>
-                  {notification.channel}
+                  {dict.notifications.channel[notification.channel]}
                 </Badge>
                 {!notification.read ? (
                   <span className="h-2 w-2 rounded-full bg-primary" />

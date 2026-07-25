@@ -1,4 +1,4 @@
-# AI Export Agent
+# TargetOut AI
 
 A B2B SaaS that automates finding, qualifying, and emailing international
 buyers for exporters/manufacturers — scraping target-sector companies, AI

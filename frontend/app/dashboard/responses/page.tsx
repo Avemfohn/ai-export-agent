@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getEmailResponses } from "@/lib/api/responses";
 import type { ClassifiedIntent } from "@/lib/types/response";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 const INTENT_VARIANT: Record<
   ClassifiedIntent,
@@ -20,6 +22,9 @@ const INTENT_VARIANT: Record<
 };
 
 export default async function ResponsesPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   let responses: Awaited<ReturnType<typeof getEmailResponses>> = [];
   let errored = false;
 
@@ -33,8 +38,8 @@ export default async function ResponsesPage() {
     return (
       <EmptyState
         icon={MessageSquareText}
-        title="Could not load responses"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.responses.errorTitle}
+        description={dict.responses.errorDescription}
       />
     );
   }
@@ -43,8 +48,8 @@ export default async function ResponsesPage() {
     return (
       <EmptyState
         icon={MessageSquareText}
-        title="No replies yet"
-        description="Classified replies from leads — including warm replies — will appear here."
+        title={dict.responses.emptyTitle}
+        description={dict.responses.emptyDescription}
       />
     );
   }
@@ -59,14 +64,14 @@ export default async function ResponsesPage() {
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-foreground">
-                    {response.fromEmail ?? "Unknown sender"}
+                    {response.fromEmail ?? dict.responses.unknownSender}
                   </p>
                   <Badge variant={INTENT_VARIANT[intent]}>
-                    {intent.replace("_", " ")}
+                    {dict.responses.intent[intent]}
                   </Badge>
                 </div>
                 <p className="text-sm font-medium text-foreground">
-                  {response.subject ?? "(no subject)"}
+                  {response.subject ?? dict.responses.noSubject}
                 </p>
                 <p className="truncate text-sm text-muted-foreground">
                   {response.body ?? ""}

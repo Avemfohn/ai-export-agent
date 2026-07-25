@@ -3,8 +3,13 @@ import { Megaphone } from "lucide-react";
 import { CampaignCard } from "@/components/campaigns/campaign-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getCampaigns } from "@/lib/api/campaigns";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function CampaignsPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   let campaigns: Awaited<ReturnType<typeof getCampaigns>> = [];
   let errored = false;
 
@@ -18,8 +23,8 @@ export default async function CampaignsPage() {
     return (
       <EmptyState
         icon={Megaphone}
-        title="Could not load campaigns"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.campaigns.errorTitle}
+        description={dict.campaigns.errorDescription}
       />
     );
   }
@@ -28,8 +33,8 @@ export default async function CampaignsPage() {
     return (
       <EmptyState
         icon={Megaphone}
-        title="No campaigns yet"
-        description="Create an outreach campaign to start emailing qualified leads."
+        title={dict.campaigns.emptyTitle}
+        description={dict.campaigns.emptyDescription}
       />
     );
   }
@@ -37,7 +42,7 @@ export default async function CampaignsPage() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {campaigns.map((campaign) => (
-        <CampaignCard key={campaign.id} campaign={campaign} />
+        <CampaignCard key={campaign.id} campaign={campaign} dict={dict} />
       ))}
     </div>
   );

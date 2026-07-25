@@ -1,0 +1,181 @@
+{
+  "app": {
+    "name": "TargetOut AI"
+  },
+  "nav": {
+    "overview": "Overview",
+    "leads": "Leads",
+    "campaigns": "Campaigns",
+    "outreach": "Outreach",
+    "responses": "Responses",
+    "notifications": "Notifications",
+    "scrapingJobs": "Scraping Jobs",
+    "settings": "Settings"
+  },
+  "topbar": {
+    "dashboard": "Dashboard"
+  },
+  "overview": {
+    "totalLeads": "Total Leads",
+    "warmReplies": "Warm Replies",
+    "activeCampaigns": "Active Campaigns",
+    "scrapingJobs": "Scraping Jobs",
+    "backendUnavailable": "Backend unavailable",
+    "footnote": "Data is fetched live from the backend API on each load. If a card shows a dash, the backend was unreachable at request time."
+  },
+  "leads": {
+    "table": {
+      "company": "Company",
+      "domain": "Domain",
+      "country": "Country",
+      "sector": "Sector",
+      "status": "Status",
+      "score": "Score"
+    },
+    "errorTitle": "Could not load leads",
+    "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
+    "emptyTitle": "No leads yet",
+    "emptyDescription": "Qualified buyer leads from the global supplier pool will appear here once scraping and AI filtering have run.",
+    "detail": {
+      "country": "Country",
+      "sector": "Sector",
+      "qualificationScore": "Qualification Score",
+      "lastUpdated": "Last Updated",
+      "qualificationNotes": "Qualification Notes",
+      "outreachEmails": "Outreach Emails",
+      "noEmails": "No emails sent to this lead yet",
+      "responses": "Responses",
+      "noResponses": "No responses recorded yet",
+      "errorTitle": "Could not load this lead",
+      "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+    },
+    "status": {
+      "PENDING_APPROVAL": "Pending Approval",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "EMAIL_SENT": "Email Sent",
+      "NO_RESPONSE": "No Response",
+      "INTERESTED": "Interested",
+      "NOT_INTERESTED": "Not Interested",
+      "BOUNCED": "Bounced",
+      "CONVERTED": "Converted"
+    }
+  },
+  "campaigns": {
+    "errorTitle": "Could not load campaigns",
+    "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
+    "emptyTitle": "No campaigns yet",
+    "emptyDescription": "Create an outreach campaign to start emailing qualified leads.",
+    "noDescription": "No description provided.",
+    "detail": {
+      "outreachEmails": "Outreach Emails",
+      "noEmails": "No outreach emails linked to this campaign yet",
+      "errorTitle": "Could not load this campaign",
+      "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "COMPLETED": "Completed",
+      "ARCHIVED": "Archived"
+    }
+  },
+  "outreach": {
+    "table": {
+      "to": "To",
+      "subject": "Subject",
+      "status": "Status",
+      "sentAt": "Sent At"
+    },
+    "errorTitle": "Could not load outreach emails",
+    "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
+    "emptyTitle": "No outreach emails sent yet",
+    "emptyDescription": "Emails sent to qualified leads will show up here.",
+    "status": {
+      "DRAFT": "Draft",
+      "QUEUED": "Queued",
+      "SENT": "Sent",
+      "FAILED": "Failed",
+      "BOUNCED": "Bounced"
+    }
+  },
+  "responses": {
+    "errorTitle": "Could not load responses",
+    "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
+    "emptyTitle": "No replies yet",
+    "emptyDescription": "Classified replies from leads — including warm replies — will appear here.",
+    "unknownSender": "Unknown sender",
+    "noSubject": "(no subject)",
+    "intent": {
+      "INTERESTED": "Interested",
+      "NOT_INTERESTED": "Not Interested",
+      "NEEDS_INFO": "Needs Info",
+      "OUT_OF_OFFICE": "Out of Office",
+      "UNSUBSCRIBE": "Unsubscribe",
+      "SPAM": "Spam",
+      "UNKNOWN": "Unknown"
+    }
+  },
+  "notifications": {
+    "errorTitle": "Could not load notifications",
+    "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "Warm-reply alerts and job status updates will appear here.",
+    "channel": {
+      "DASHBOARD": "Dashboard",
+      "WHATSAPP": "WhatsApp",
+      "EMAIL": "Email"
+    }
+  },
+  "scrapingJobs": {
+    "table": {
+      "source": "Source",
+      "status": "Status",
+      "companiesFound": "Companies Found",
+      "error": "Error"
+    },
+    "errorTitle": "Could not load scraping jobs",
+    "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
+    "emptyTitle": "No scraping jobs yet",
+    "emptyDescription": "Jobs that gather target-sector companies from Google Maps, B2B directories, and trade-fair uploads will appear here.",
+    "status": {
+      "PENDING": "Pending",
+      "RUNNING": "Running",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "source": {
+      "GOOGLE_MAPS": "Google Maps",
+      "B2B_DIRECTORY": "B2B Directory",
+      "TRADE_FAIR_UPLOAD": "Trade Fair Upload",
+      "MANUAL": "Manual"
+    }
+  },
+  "settings": {
+    "buyerCriteria": {
+      "title": "Buyer Criteria",
+      "description": "Used by the AI filtering step to qualify scraped companies before they become leads. Read-only in this sprint.",
+      "targetSectors": "Target Sectors",
+      "targetCountries": "Target Countries",
+      "minCompanySize": "Minimum Company Size",
+      "excludedKeywords": "Excluded Keywords",
+      "preferredLanguages": "Preferred Languages",
+      "notConfigured": "Not configured"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Choose how TargetOut AI looks on this device.",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the dashboard's display language.",
+      "english": "English",
+      "turkish": "Türkçe"
+    }
+  }
+}

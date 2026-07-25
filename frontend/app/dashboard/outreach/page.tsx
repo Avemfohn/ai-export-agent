@@ -12,6 +12,8 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { getOutreachEmails } from "@/lib/api/outreach";
 import type { OutreachEmailStatus } from "@/lib/types/outreach";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 const STATUS_VARIANT: Record<
   OutreachEmailStatus,
@@ -25,6 +27,9 @@ const STATUS_VARIANT: Record<
 };
 
 export default async function OutreachPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   let emails: Awaited<ReturnType<typeof getOutreachEmails>> = [];
   let errored = false;
 
@@ -38,8 +43,8 @@ export default async function OutreachPage() {
     return (
       <EmptyState
         icon={Send}
-        title="Could not load outreach emails"
-        description="The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+        title={dict.outreach.errorTitle}
+        description={dict.outreach.errorDescription}
       />
     );
   }
@@ -48,8 +53,8 @@ export default async function OutreachPage() {
     return (
       <EmptyState
         icon={Send}
-        title="No outreach emails sent yet"
-        description="Emails sent to qualified leads will show up here."
+        title={dict.outreach.emptyTitle}
+        description={dict.outreach.emptyDescription}
       />
     );
   }
@@ -58,10 +63,10 @@ export default async function OutreachPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>To</TableHead>
-          <TableHead>Subject</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Sent At</TableHead>
+          <TableHead>{dict.outreach.table.to}</TableHead>
+          <TableHead>{dict.outreach.table.subject}</TableHead>
+          <TableHead>{dict.outreach.table.status}</TableHead>
+          <TableHead className="text-right">{dict.outreach.table.sentAt}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -75,7 +80,7 @@ export default async function OutreachPage() {
             </TableCell>
             <TableCell>
               <Badge variant={STATUS_VARIANT[email.status]}>
-                {email.status}
+                {dict.outreach.status[email.status]}
               </Badge>
             </TableCell>
             <TableCell className="text-right text-muted-foreground">

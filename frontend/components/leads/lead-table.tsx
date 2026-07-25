@@ -10,18 +10,25 @@ import {
 } from "@/components/ui/table";
 import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 import type { TenantLead } from "@/lib/types/lead";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
-export function LeadTable({ leads }: { leads: TenantLead[] }) {
+export function LeadTable({
+  leads,
+  dict,
+}: {
+  leads: TenantLead[];
+  dict: Dictionary;
+}) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Company</TableHead>
-          <TableHead>Domain</TableHead>
-          <TableHead>Country</TableHead>
-          <TableHead>Sector</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Score</TableHead>
+          <TableHead>{dict.leads.table.company}</TableHead>
+          <TableHead>{dict.leads.table.domain}</TableHead>
+          <TableHead>{dict.leads.table.country}</TableHead>
+          <TableHead>{dict.leads.table.sector}</TableHead>
+          <TableHead>{dict.leads.table.status}</TableHead>
+          <TableHead className="text-right">{dict.leads.table.score}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -45,7 +52,7 @@ export function LeadTable({ leads }: { leads: TenantLead[] }) {
               {lead.sector}
             </TableCell>
             <TableCell>
-              <LeadStatusBadge status={lead.status} />
+              <LeadStatusBadge status={lead.status} dict={dict} />
             </TableCell>
             <TableCell className="text-right text-muted-foreground">
               {lead.qualificationScore ?? "—"}

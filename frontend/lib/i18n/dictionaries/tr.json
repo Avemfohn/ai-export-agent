@@ -1,0 +1,181 @@
+{
+  "app": {
+    "name": "TargetOut AI"
+  },
+  "nav": {
+    "overview": "Genel Bakış",
+    "leads": "Adaylar",
+    "campaigns": "Kampanyalar",
+    "outreach": "Gönderimler",
+    "responses": "Yanıtlar",
+    "notifications": "Bildirimler",
+    "scrapingJobs": "Tarama İşleri",
+    "settings": "Ayarlar"
+  },
+  "topbar": {
+    "dashboard": "Panel"
+  },
+  "overview": {
+    "totalLeads": "Toplam Aday",
+    "warmReplies": "Sıcak Yanıtlar",
+    "activeCampaigns": "Aktif Kampanyalar",
+    "scrapingJobs": "Tarama İşleri",
+    "backendUnavailable": "Sunucuya ulaşılamıyor",
+    "footnote": "Veriler her sayfa yüklendiğinde sunucudan canlı olarak çekilir. Bir kartta tire görünüyorsa, istek anında sunucuya ulaşılamamıştır."
+  },
+  "leads": {
+    "table": {
+      "company": "Şirket",
+      "domain": "Alan Adı",
+      "country": "Ülke",
+      "sector": "Sektör",
+      "status": "Durum",
+      "score": "Puan"
+    },
+    "errorTitle": "Adaylar yüklenemedi",
+    "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
+    "emptyTitle": "Henüz aday yok",
+    "emptyDescription": "Tarama ve yapay zekâ filtrelemesi tamamlandığında, ortak havuzdan gelen nitelikli alıcı adayları burada görünecek.",
+    "detail": {
+      "country": "Ülke",
+      "sector": "Sektör",
+      "qualificationScore": "Nitelik Puanı",
+      "lastUpdated": "Son Güncelleme",
+      "qualificationNotes": "Nitelik Notları",
+      "outreachEmails": "Gönderilen E-postalar",
+      "noEmails": "Bu adaya henüz e-posta gönderilmedi",
+      "responses": "Yanıtlar",
+      "noResponses": "Henüz kayıtlı yanıt yok",
+      "errorTitle": "Bu aday yüklenemedi",
+      "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun."
+    },
+    "status": {
+      "PENDING_APPROVAL": "Onay Bekliyor",
+      "APPROVED": "Onaylandı",
+      "REJECTED": "Reddedildi",
+      "EMAIL_SENT": "E-posta Gönderildi",
+      "NO_RESPONSE": "Yanıt Yok",
+      "INTERESTED": "İlgileniyor",
+      "NOT_INTERESTED": "İlgilenmiyor",
+      "BOUNCED": "Geri Döndü",
+      "CONVERTED": "Dönüştürüldü"
+    }
+  },
+  "campaigns": {
+    "errorTitle": "Kampanyalar yüklenemedi",
+    "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
+    "emptyTitle": "Henüz kampanya yok",
+    "emptyDescription": "Nitelikli adaylara e-posta göndermeye başlamak için bir gönderim kampanyası oluşturun.",
+    "noDescription": "Açıklama girilmedi.",
+    "detail": {
+      "outreachEmails": "Gönderilen E-postalar",
+      "noEmails": "Bu kampanyaya bağlı e-posta henüz yok",
+      "errorTitle": "Bu kampanya yüklenemedi",
+      "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun."
+    },
+    "status": {
+      "DRAFT": "Taslak",
+      "ACTIVE": "Aktif",
+      "PAUSED": "Duraklatıldı",
+      "COMPLETED": "Tamamlandı",
+      "ARCHIVED": "Arşivlendi"
+    }
+  },
+  "outreach": {
+    "table": {
+      "to": "Alıcı",
+      "subject": "Konu",
+      "status": "Durum",
+      "sentAt": "Gönderim Zamanı"
+    },
+    "errorTitle": "Gönderimler yüklenemedi",
+    "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
+    "emptyTitle": "Henüz gönderilen e-posta yok",
+    "emptyDescription": "Nitelikli adaylara gönderilen e-postalar burada görünecek.",
+    "status": {
+      "DRAFT": "Taslak",
+      "QUEUED": "Sırada",
+      "SENT": "Gönderildi",
+      "FAILED": "Başarısız",
+      "BOUNCED": "Geri Döndü"
+    }
+  },
+  "responses": {
+    "errorTitle": "Yanıtlar yüklenemedi",
+    "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
+    "emptyTitle": "Henüz yanıt yok",
+    "emptyDescription": "Adaylardan gelen sınıflandırılmış yanıtlar — sıcak yanıtlar dahil — burada görünecek.",
+    "unknownSender": "Bilinmeyen gönderen",
+    "noSubject": "(konu yok)",
+    "intent": {
+      "INTERESTED": "İlgileniyor",
+      "NOT_INTERESTED": "İlgilenmiyor",
+      "NEEDS_INFO": "Bilgi İstiyor",
+      "OUT_OF_OFFICE": "Ofis Dışı",
+      "UNSUBSCRIBE": "Listeden Çıkma",
+      "SPAM": "Spam",
+      "UNKNOWN": "Bilinmiyor"
+    }
+  },
+  "notifications": {
+    "errorTitle": "Bildirimler yüklenemedi",
+    "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
+    "emptyTitle": "Henüz bildirim yok",
+    "emptyDescription": "Sıcak yanıt uyarıları ve iş durumu güncellemeleri burada görünecek.",
+    "channel": {
+      "DASHBOARD": "Panel",
+      "WHATSAPP": "WhatsApp",
+      "EMAIL": "E-posta"
+    }
+  },
+  "scrapingJobs": {
+    "table": {
+      "source": "Kaynak",
+      "status": "Durum",
+      "companiesFound": "Bulunan Şirket",
+      "error": "Hata"
+    },
+    "errorTitle": "Tarama işleri yüklenemedi",
+    "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
+    "emptyTitle": "Henüz tarama işi yok",
+    "emptyDescription": "Google Maps, B2B dizinleri ve fuar yüklemelerinden hedef sektör şirketlerini toplayan işler burada görünecek.",
+    "status": {
+      "PENDING": "Bekliyor",
+      "RUNNING": "Çalışıyor",
+      "COMPLETED": "Tamamlandı",
+      "FAILED": "Başarısız",
+      "CANCELLED": "İptal Edildi"
+    },
+    "source": {
+      "GOOGLE_MAPS": "Google Haritalar",
+      "B2B_DIRECTORY": "B2B Dizini",
+      "TRADE_FAIR_UPLOAD": "Fuar Yüklemesi",
+      "MANUAL": "Manuel"
+    }
+  },
+  "settings": {
+    "buyerCriteria": {
+      "title": "Alım Kriterleri",
+      "description": "Taranan şirketler aday olmadan önce yapay zekâ filtreleme adımında kullanılır. Bu sprintte salt okunur.",
+      "targetSectors": "Hedef Sektörler",
+      "targetCountries": "Hedef Ülkeler",
+      "minCompanySize": "Minimum Şirket Büyüklüğü",
+      "excludedKeywords": "Hariç Tutulacak Anahtar Kelimeler",
+      "preferredLanguages": "Tercih Edilen Diller",
+      "notConfigured": "Yapılandırılmadı"
+    },
+    "appearance": {
+      "title": "Görünüm",
+      "description": "TargetOut AI'nin bu cihazda nasıl görüneceğini seçin.",
+      "light": "Açık",
+      "dark": "Koyu",
+      "system": "Sistem"
+    },
+    "language": {
+      "title": "Dil",
+      "description": "Panelin görüntülenme dilini seçin.",
+      "english": "English",
+      "turkish": "Türkçe"
+    }
+  }
+}

@@ -1,8 +1,8 @@
-# How AI Export Agent Works
+# How TargetOut AI Works
 
 ## 1. What this app does
 
-AI Export Agent helps exporters and manufacturers find, qualify, and email
+TargetOut AI helps exporters and manufacturers find, qualify, and email
 international buyers — without a sales team manually trawling Google Maps,
 B2B directories, and trade-fair spreadsheets. It's being built as an MVP for
 one pilot factory client first, with the underlying data model already

@@ -1,4 +1,4 @@
-# AI Export Agent — Kullanıcı Arayüzü Rehberi
+# TargetOut AI — Kullanıcı Arayüzü Rehberi
 
 Bu belge, panelin (dashboard) sol menüsündeki her ekranı ve o ekranda
 gördüğünüz bilgilerin ne anlama geldiğini açıklar. Durum (status) etiketleri

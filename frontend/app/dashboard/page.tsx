@@ -5,6 +5,8 @@ import { getLeads } from "@/lib/api/leads";
 import { getCampaigns } from "@/lib/api/campaigns";
 import { getEmailResponses } from "@/lib/api/responses";
 import { getScrapingJobs } from "@/lib/api/scraping-jobs";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 interface StatResult {
   value: number | null;
@@ -36,10 +38,12 @@ function StatCard({
   label,
   icon: Icon,
   result,
+  backendUnavailableLabel,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   result: StatResult;
+  backendUnavailableLabel: string;
 }) {
   return (
     <Card>
@@ -53,7 +57,7 @@ function StatCard({
         </div>
         {result.errored ? (
           <p className="mt-1 text-xs text-muted-foreground">
-            Backend unavailable
+            {backendUnavailableLabel}
           </p>
         ) : null}
       </CardContent>
@@ -62,6 +66,9 @@ function StatCard({
 }
 
 export default async function DashboardOverviewPage() {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   const [totalLeads, warmReplies, activeCampaigns, scrapingJobs] =
     await Promise.all([
       safeCount(getLeads),
@@ -73,23 +80,32 @@ export default async function DashboardOverviewPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Leads" icon={Users} result={totalLeads} />
         <StatCard
-          label="Warm Replies"
+          label={dict.overview.totalLeads}
+          icon={Users}
+          result={totalLeads}
+          backendUnavailableLabel={dict.overview.backendUnavailable}
+        />
+        <StatCard
+          label={dict.overview.warmReplies}
           icon={MessageSquareText}
           result={warmReplies}
+          backendUnavailableLabel={dict.overview.backendUnavailable}
         />
         <StatCard
-          label="Active Campaigns"
+          label={dict.overview.activeCampaigns}
           icon={Megaphone}
           result={activeCampaigns}
+          backendUnavailableLabel={dict.overview.backendUnavailable}
         />
-        <StatCard label="Scraping Jobs" icon={Radar} result={scrapingJobs} />
+        <StatCard
+          label={dict.overview.scrapingJobs}
+          icon={Radar}
+          result={scrapingJobs}
+          backendUnavailableLabel={dict.overview.backendUnavailable}
+        />
       </div>
-      <p className="text-sm text-muted-foreground">
-        Data is fetched live from the backend API on each load. If a card
-        shows a dash, the backend was unreachable at request time.
-      </p>
+      <p className="text-sm text-muted-foreground">{dict.overview.footnote}</p>
     </div>
   );
 }
