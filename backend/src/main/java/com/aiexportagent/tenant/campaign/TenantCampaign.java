@@ -33,4 +33,13 @@ public class TenantCampaign extends Auditable {
     // Simple String mapping for the JSONB column for this skeleton — no JSON<->POJO wiring yet.
     @Column(name = "buyer_criteria_snapshot", columnDefinition = "jsonb", nullable = false)
     private String buyerCriteriaSnapshot;
+
+    /**
+     * Per-campaign override/snapshot of the tenant's default outreach draft
+     * template (see {@link com.aiexportagent.tenant.account.TenantSettings#getEmailDraftTemplate()}),
+     * for campaigns targeting a different product line or region than the
+     * tenant default. See CLAUDE.md.
+     */
+    @Column(name = "email_draft_template_snapshot", columnDefinition = "jsonb", nullable = false)
+    private String emailDraftTemplateSnapshot;
 }

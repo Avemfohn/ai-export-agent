@@ -9,9 +9,18 @@ international buyers for exporters/manufacturers. Business flow:
    directories, and user-uploaded trade-fair lists (Excel/PDF).
 2. **AI filtering** — an LLM checks each scraped company's website against the
    tenant's buyer criteria; non-matches are rejected.
-3. **Outreach** — for matches, find corporate emails, have AI draft
-   personalized cold emails referencing the company's real products/news, then
-   send them.
+3. **Outreach** — for matches, find corporate emails, then AI drafts a
+   personalized cold email and sends it. The AI does **not** write freely
+   from scratch: it *customizes* a client-authored base draft template per
+   supplier (personalizing the opening reference to the recipient's real
+   products/news, matching tone), so the client controls the core pitch and
+   the AI's job is narrowed to targeted personalization. The tenant has one
+   standing default template (`tenant_settings.email_draft_template`); a
+   campaign targeting a different product line or region can override it
+   with its own snapshot (`tenant_campaigns.email_draft_template_snapshot`),
+   the same pattern already used for `buyer_criteria` →
+   `buyer_criteria_snapshot`. The AI customization logic itself is phase 2 —
+   only the schema fields exist so far.
 4. **Reply tracking** — AI classifies intent on incoming replies; warm replies
    surface on the dashboard and trigger a WhatsApp notification.
 

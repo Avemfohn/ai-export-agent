@@ -41,4 +41,14 @@ public class TenantSettings extends Auditable {
 
     @Column(name = "notification_prefs", columnDefinition = "jsonb", nullable = false)
     private String notificationPrefs;
+
+    /**
+     * The tenant's standing default outreach draft — a client-authored base
+     * template (subject/body/notes) that AI customizes per supplier, rather
+     * than generating emails from scratch. See CLAUDE.md. Individual
+     * campaigns may override this via
+     * {@link com.aiexportagent.tenant.campaign.TenantCampaign#getEmailDraftTemplateSnapshot()}.
+     */
+    @Column(name = "email_draft_template", columnDefinition = "jsonb", nullable = false)
+    private String emailDraftTemplate;
 }

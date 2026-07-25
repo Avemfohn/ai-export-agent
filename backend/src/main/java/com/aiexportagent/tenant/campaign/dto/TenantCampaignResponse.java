@@ -11,6 +11,7 @@ public record TenantCampaignResponse(
         String description,
         String status,
         String buyerCriteriaSnapshot,
+        String emailDraftTemplateSnapshot,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
@@ -22,6 +23,7 @@ public record TenantCampaignResponse(
                 campaign.getDescription(),
                 campaign.getStatus(),
                 campaign.getBuyerCriteriaSnapshot(),
+                campaign.getEmailDraftTemplateSnapshot(),
                 campaign.getCreatedAt(),
                 campaign.getUpdatedAt()
         );
