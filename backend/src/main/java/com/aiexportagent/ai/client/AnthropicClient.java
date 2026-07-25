@@ -13,12 +13,12 @@ import java.util.Map;
 /**
  * Real Anthropic Messages API client. Anthropic has no native "JSON mode"
  * equivalent to OpenAI's {@code response_format} — structured output relies
- * entirely on the prompt's instructions plus {@link ScoringResponseParser}'s
- * lenient extraction (this is exactly the gap CLAUDE.md flags as
- * LangChain4j's weak point too; a raw client has the same constraint, it's
- * just handled explicitly here instead of hidden behind a library). Active
- * only when {@code app.ai.provider=anthropic}; requires
- * {@code app.ai.anthropic.api-key} (env {@code ANTHROPIC_API_KEY}).
+ * entirely on the prompt's instructions plus {@link ScoringResponseParser}/
+ * {@link EmailDraftResponseParser}'s lenient extraction (this is exactly the
+ * gap CLAUDE.md flags as LangChain4j's weak point too; a raw client has the
+ * same constraint, it's just handled explicitly here instead of hidden
+ * behind a library). Active only when {@code app.ai.provider=anthropic};
+ * requires {@code app.ai.anthropic.api-key} (env {@code ANTHROPIC_API_KEY}).
  */
 @Service
 @ConditionalOnProperty(name = "app.ai.provider", havingValue = "anthropic")
@@ -46,12 +46,24 @@ public class AnthropicClient implements AiClient {
 
     @Override
     public AiScoringResult score(AiScoringRequest request) {
+        String content = complete(PromptBuilder.scoringSystemPrompt(), PromptBuilder.scoringUserPrompt(request));
+        return ScoringResponseParser.parse(content, "anthropic", model, objectMapper);
+    }
+
+    @Override
+    public AiEmailDraftResult draftEmail(AiEmailDraftRequest request) {
+        String content = complete(PromptBuilder.draftingSystemPrompt(), PromptBuilder.draftingUserPrompt(request));
+        return EmailDraftResponseParser.parse(content, "anthropic", model, objectMapper);
+    }
+
+    /** @throws AiClientException if the HTTP call itself fails. */
+    private String complete(String systemPrompt, String userPrompt) {
         Map<String, Object> body = Map.of(
                 "model", model,
                 "max_tokens", 512,
-                "system", ScoringPromptBuilder.systemPrompt(),
+                "system", systemPrompt,
                 "messages", List.of(
-                        Map.of("role", "user", "content", ScoringPromptBuilder.userPrompt(request))
+                        Map.of("role", "user", "content", userPrompt)
                 )
         );
 
@@ -62,12 +74,9 @@ public class AnthropicClient implements AiClient {
                     .retrieve()
                     .body(JsonNode.class);
 
-            String content = response.path("content").path(0).path("text").asText();
-            return ScoringResponseParser.parse(content, "anthropic", model, objectMapper);
-        } catch (AiClientException e) {
-            throw e;
+            return response.path("content").path(0).path("text").asText();
         } catch (Exception e) {
-            throw new AiClientException("Anthropic scoring call failed: " + e.getMessage(), e);
+            throw new AiClientException("Anthropic call failed: " + e.getMessage(), e);
         }
     }
 }

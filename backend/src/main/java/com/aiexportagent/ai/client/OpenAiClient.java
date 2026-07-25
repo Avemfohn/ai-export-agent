@@ -13,9 +13,10 @@ import java.util.Map;
 /**
  * Real OpenAI Chat Completions client, using {@code response_format:
  * json_object} to encourage structured output (still passed through
- * {@link ScoringResponseParser} defensively — models don't always comply
- * perfectly). Active only when {@code app.ai.provider=openai}; requires
- * {@code app.ai.openai.api-key} (env {@code OPENAI_API_KEY}) to be set.
+ * {@link ScoringResponseParser}/{@link EmailDraftResponseParser} defensively
+ * — models don't always comply perfectly). Active only when
+ * {@code app.ai.provider=openai}; requires {@code app.ai.openai.api-key}
+ * (env {@code OPENAI_API_KEY}) to be set.
  */
 @Service
 @ConditionalOnProperty(name = "app.ai.provider", havingValue = "openai")
@@ -40,12 +41,24 @@ public class OpenAiClient implements AiClient {
 
     @Override
     public AiScoringResult score(AiScoringRequest request) {
+        String content = complete(PromptBuilder.scoringSystemPrompt(), PromptBuilder.scoringUserPrompt(request));
+        return ScoringResponseParser.parse(content, "openai", model, objectMapper);
+    }
+
+    @Override
+    public AiEmailDraftResult draftEmail(AiEmailDraftRequest request) {
+        String content = complete(PromptBuilder.draftingSystemPrompt(), PromptBuilder.draftingUserPrompt(request));
+        return EmailDraftResponseParser.parse(content, "openai", model, objectMapper);
+    }
+
+    /** @throws AiClientException if the HTTP call itself fails. */
+    private String complete(String systemPrompt, String userPrompt) {
         Map<String, Object> body = Map.of(
                 "model", model,
                 "response_format", Map.of("type", "json_object"),
                 "messages", List.of(
-                        Map.of("role", "system", "content", ScoringPromptBuilder.systemPrompt()),
-                        Map.of("role", "user", "content", ScoringPromptBuilder.userPrompt(request))
+                        Map.of("role", "system", "content", systemPrompt),
+                        Map.of("role", "user", "content", userPrompt)
                 )
         );
 
@@ -56,12 +69,9 @@ public class OpenAiClient implements AiClient {
                     .retrieve()
                     .body(JsonNode.class);
 
-            String content = response.path("choices").path(0).path("message").path("content").asText();
-            return ScoringResponseParser.parse(content, "openai", model, objectMapper);
-        } catch (AiClientException e) {
-            throw e;
+            return response.path("choices").path(0).path("message").path("content").asText();
         } catch (Exception e) {
-            throw new AiClientException("OpenAI scoring call failed: " + e.getMessage(), e);
+            throw new AiClientException("OpenAI call failed: " + e.getMessage(), e);
         }
     }
 }

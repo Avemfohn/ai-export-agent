@@ -102,17 +102,51 @@ Create-only/idempotent: never touches an existing lead, safe to re-run.
     `RestClient` (no LangChain4j — see AI Integration Notes above on why).
     Activated by setting `AI_PROVIDER=openai`/`anthropic` +
     `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` — no code changes needed.
-  - `ScoringPromptBuilder` / `ScoringResponseParser` are shared by both real
-    clients: build the system/user prompt text, and leniently extract+parse
-    the `{"score": ..., "rationale": ...}` JSON object the prompt asks for
-    (models don't always emit JSON-only despite instructions, so this
-    extracts the first `{...}` span rather than requiring an exact match).
+  - `PromptBuilder` builds the system/user prompt text for both operations
+    this client supports (scoring and drafting, see below);
+    `ScoringResponseParser` / `EmailDraftResponseParser` leniently
+    extract+parse each operation's expected JSON shape (via the shared
+    `JsonExtraction` helper — models don't always emit JSON-only despite
+    instructions, so this extracts the first `{...}` span rather than
+    requiring an exact match).
 - `ai/scoring/LeadScoringService` — the orchestrator; depends on
   `TenantSettingsService` and `TenantLeadService` (never a repository
   directly, per the encapsulation convention below).
 - `buyer_criteria` is passed into the prompt as raw JSON text, not parsed
   into a Java schema — the LLM interprets it holistically (same "stays
   opaque JSON" convention as `email_draft_template`).
+
+### AI Outreach Drafting (`com.aiexportagent.ai.outreach`)
+
+`POST /api/outreach-emails/draft` customizes the tenant's (or campaign's)
+base `email_draft_template` into a real subject/body for every `APPROVED`
+tenant_lead that doesn't already have an `outreach_emails` row, and stores
+it with `status = 'DRAFT'` — it does **not** send anything (no Mailgun
+integration yet). Create-only/idempotent, same as lead scoring.
+
+- Uses the same `AiClient.draftEmail(...)` operation (see above) — one
+  provider choice covers both scoring and drafting.
+- `PENDING_APPROVAL` → `APPROVED`/`REJECTED` transition is a separate,
+  narrowly-scoped endpoint: `PATCH /api/leads/{id}/status`
+  (`TenantLeadService.updateStatusForCurrentTenant`) — only accepts
+  `APPROVED`/`REJECTED`, and only from a lead currently
+  `PENDING_APPROVAL` (409 otherwise). It's a review gate, not a general
+  lead editor.
+- `OutreachDraftingService` picks the lead's `TenantCampaign`'s
+  `email_draft_template_snapshot` if `tenant_campaign_id` is set, else the
+  tenant's default `email_draft_template`; picks the supplier's primary
+  `global_supplier_contacts` row (falling back to any contact, or skipping
+  the lead entirely — counted, not an error — if none exist).
+- Personalization is limited to what `global_suppliers.description`
+  actually contains — there's no live "recent news" enrichment yet, so
+  don't expect real news references, just sector/description-grounded
+  customization of the template.
+- Same transaction-boundary lesson as `LeadScoringService`, applied from
+  the start here: the orchestrating method is deliberately NOT
+  `@Transactional` (the loop makes a synchronous external AI call per
+  lead), each `outreach_emails` write commits independently via
+  `REQUIRES_NEW`, and per-lead failures are caught broadly so one bad lead
+  doesn't abort the batch.
 
 ## 4. Folder Map
 

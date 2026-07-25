@@ -4,30 +4,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Parses a raw LLM text response into a structured {@link AiScoringResult}.
+ * Parses a raw LLM text response into a structured {@link AiEmailDraftResult}.
  * Shared by {@link OpenAiClient} and {@link AnthropicClient}.
  */
-final class ScoringResponseParser {
+final class EmailDraftResponseParser {
 
-    private ScoringResponseParser() {
+    private EmailDraftResponseParser() {
     }
 
-    static AiScoringResult parse(String rawText, String provider, String model, ObjectMapper objectMapper) {
+    static AiEmailDraftResult parse(String rawText, String provider, String model, ObjectMapper objectMapper) {
         String json = JsonExtraction.extractJsonObject(rawText, provider);
         try {
             JsonNode node = objectMapper.readTree(json);
-            int score = clamp(node.path("score").asInt(0));
-            String rationale = node.path("rationale").asText("");
-            return new AiScoringResult(score, rationale, provider, model);
+            String subject = node.path("subject").asText("");
+            String body = node.path("body").asText("");
+            return new AiEmailDraftResult(subject, body, provider, model);
         } catch (AiClientException e) {
             throw e;
         } catch (Exception e) {
             throw new AiClientException(
                     "Could not parse " + provider + " response as structured JSON: " + rawText, e);
         }
-    }
-
-    private static int clamp(int score) {
-        return Math.max(0, Math.min(100, score));
     }
 }
