@@ -26,9 +26,14 @@ services:
       SPRING_DATASOURCE_USERNAME: aiexportagent
       SPRING_DATASOURCE_PASSWORD: aiexportagent_dev
       DEV_TENANT_ID: 00000000-0000-0000-0000-000000000001
-      # Placeholders for future integrations, unused in Sprint 1 (mock data only):
+      # AI Lead Scoring (Phase 2): defaults to the mock provider, no key
+      # needed. Set AI_PROVIDER to openai/anthropic + the matching API key
+      # below to switch to a real provider — no code changes required.
+      AI_PROVIDER: mock
+      AI_MATCH_THRESHOLD: "60"
       OPENAI_API_KEY: ""
       ANTHROPIC_API_KEY: ""
+      # Placeholders for future integrations, unused in Sprint 1 (mock data only):
       APIFY_TOKEN: ""
       MAILGUN_API_KEY: ""
     ports:

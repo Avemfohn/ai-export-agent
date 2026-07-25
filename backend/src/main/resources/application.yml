@@ -13,3 +13,14 @@ spring:
 # exists (see CLAUDE.md, Sprint 1 status). Overridable via DEV_TENANT_ID env var.
 app:
   dev-tenant-id: ${DEV_TENANT_ID:00000000-0000-0000-0000-000000000001}
+  ai:
+    # mock | openai | anthropic — see CLAUDE.md "AI Lead Scoring". Defaults to
+    # mock so the scoring flow works out of the box with no API key.
+    provider: ${AI_PROVIDER:mock}
+    match-threshold: ${AI_MATCH_THRESHOLD:60}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      model: ${ANTHROPIC_MODEL:claude-3-5-haiku-latest}

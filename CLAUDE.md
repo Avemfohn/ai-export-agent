@@ -55,8 +55,9 @@ to scale into a multi-tenant vertical SaaS product.
 - **Backend**: Java 21, Maven, Spring Boot — package base `com.aiexportagent`
 - **Frontend**: Next.js (App Router), Shadcn UI, Tailwind CSS, pnpm
 - **DB**: PostgreSQL, Flyway migrations, Dockerized
-- **AI** (not wired yet): LangChain4j + OpenAI/Anthropic — see "AI Integration
-  Notes" below
+- **AI**: lead scoring is wired (see "AI Lead Scoring" below) via Spring's
+  built-in `RestClient`, not LangChain4j (see "AI Integration Notes"). Cold
+  email drafting and reply-intent classification are not built yet.
 - **Scraping** (not wired yet): Apify/Bright Data actors + webhooks
 - **Email**: Mailgun, with inbound webhook support for reply tracking — chosen
   over Resend specifically because inbound reply tracking / intent
@@ -82,6 +83,36 @@ of the Python LangChain ecosystem and lags it in a few concrete ways:
 None of this blocks the Java/Spring Boot choice — it's the right call for the
 relational, multi-tenant core of this system — just plan AI-sprint estimates
 accordingly.
+
+### AI Lead Scoring (`com.aiexportagent.ai`)
+
+`POST /api/leads/score` scores every `global_suppliers` row the current
+tenant doesn't already have a `tenant_leads` row for, against that tenant's
+`buyer_criteria`, and creates a lead per candidate (`PENDING_APPROVAL` if the
+score clears `app.ai.match-threshold` — default 60 — else `REJECTED`).
+Create-only/idempotent: never touches an existing lead, safe to re-run.
+
+- `ai/client/` — provider-agnostic `AiClient` interface. Exactly one
+  implementation is active, chosen by `app.ai.provider`
+  (`mock` | `openai` | `anthropic`, default `mock`):
+  - `MockAiClient` — deterministic keyword-overlap heuristic, no HTTP call,
+    no API key. Proves the plumbing end-to-end for free; not a real
+    qualification algorithm.
+  - `OpenAiClient` / `AnthropicClient` — real calls via Spring's built-in
+    `RestClient` (no LangChain4j — see AI Integration Notes above on why).
+    Activated by setting `AI_PROVIDER=openai`/`anthropic` +
+    `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` — no code changes needed.
+  - `ScoringPromptBuilder` / `ScoringResponseParser` are shared by both real
+    clients: build the system/user prompt text, and leniently extract+parse
+    the `{"score": ..., "rationale": ...}` JSON object the prompt asks for
+    (models don't always emit JSON-only despite instructions, so this
+    extracts the first `{...}` span rather than requiring an exact match).
+- `ai/scoring/LeadScoringService` — the orchestrator; depends on
+  `TenantSettingsService` and `TenantLeadService` (never a repository
+  directly, per the encapsulation convention below).
+- `buyer_criteria` is passed into the prompt as raw JSON text, not parsed
+  into a Java schema — the LLM interprets it holistically (same "stays
+  opaque JSON" convention as `email_draft_template`).
 
 ## 4. Folder Map
 
@@ -131,9 +162,13 @@ repositories against the real schema, it does not hardcode fake objects in
 application code. This validates the schema and UX before any real
 integrations are wired in.
 
-- **No real OpenAI/Anthropic/Apify/Resend/Mailgun calls yet.** Those
-  integration points exist as empty placeholder packages (`ai/`, `scraping/`,
-  `email/`) to be filled in in a later sprint.
+- **AI lead scoring is real (Phase 2), but defaults to a mock provider** —
+  no OpenAI/Anthropic key is configured anywhere by default, so no billed
+  calls happen unless you explicitly set `AI_PROVIDER` + an API key. See "AI
+  Lead Scoring" above.
+- **No real Apify/Resend/Mailgun calls yet.** Those integration points exist
+  as empty placeholder packages (`scraping/`, `email/`) to be filled in in a
+  later sprint.
 - **No real tenant login yet.** A hardcoded dev `tenant_id` (env var
   `DEV_TENANT_ID`) is injected into every request via `TenantContextFilter`,
   so tenant-scoping code paths are real and exercised even though there's no
@@ -148,6 +183,12 @@ integrations are wired in.
 - UUID primary keys everywhere (`gen_random_uuid()`).
 - Every table has `created_at` / `updated_at` timestamps.
 - Commit messages: conventional-commit-ish, imperative mood.
+- **A package's Repository is never injected into another package's Service.**
+  Cross-feature access always goes through the owning package's Service
+  (e.g. `LeadScoringService` depends on `TenantSettingsService` and
+  `TenantLeadService`, not `TenantSettingsRepository`/`TenantLeadRepository`
+  directly) — same reasoning as `GlobalSupplierService` fronting
+  `GlobalSupplierRepository` for the `tenant` package.
 - **All new frontend UI text must go through the translation dictionaries**
   (`frontend/lib/i18n/dictionaries/{en,tr}.json`) — no hardcoded string
   literals in JSX. Add the key to both `en.json` and `tr.json` in the same

@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -33,9 +35,11 @@ public class ScrapingJob extends Auditable {
     private String status;
 
     // Simple String mapping for the JSONB columns for this skeleton — no JSON<->POJO wiring yet.
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "params", columnDefinition = "jsonb", nullable = false)
     private String params;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "result_summary", columnDefinition = "jsonb", nullable = false)
     private String resultSummary;
 

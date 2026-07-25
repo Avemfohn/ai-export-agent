@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -31,6 +33,7 @@ public class TenantCampaign extends Auditable {
     private String status;
 
     // Simple String mapping for the JSONB column for this skeleton — no JSON<->POJO wiring yet.
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "buyer_criteria_snapshot", columnDefinition = "jsonb", nullable = false)
     private String buyerCriteriaSnapshot;
 
@@ -40,6 +43,7 @@ public class TenantCampaign extends Auditable {
      * for campaigns targeting a different product line or region than the
      * tenant default. See CLAUDE.md.
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "email_draft_template_snapshot", columnDefinition = "jsonb", nullable = false)
     private String emailDraftTemplateSnapshot;
 }

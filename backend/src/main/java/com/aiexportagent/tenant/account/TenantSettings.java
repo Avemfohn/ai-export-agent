@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -21,12 +23,17 @@ public class TenantSettings extends Auditable {
     private UUID tenantId;
 
     // Simple String mapping for JSONB columns for this skeleton — no JSON<->POJO wiring yet.
+    // @JdbcTypeCode(SqlTypes.JSON) is required for INSERT/UPDATE: without it Hibernate binds
+    // the parameter as varchar and Postgres refuses to implicitly cast varchar -> jsonb.
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "buyer_criteria", columnDefinition = "jsonb", nullable = false)
     private String buyerCriteria;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "target_sectors", columnDefinition = "jsonb", nullable = false)
     private String targetSectors;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "target_regions", columnDefinition = "jsonb", nullable = false)
     private String targetRegions;
 
@@ -39,6 +46,7 @@ public class TenantSettings extends Auditable {
     @Column(name = "whatsapp_notify_number", length = 50)
     private String whatsappNotifyNumber;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "notification_prefs", columnDefinition = "jsonb", nullable = false)
     private String notificationPrefs;
 
@@ -49,6 +57,7 @@ public class TenantSettings extends Auditable {
      * campaigns may override this via
      * {@link com.aiexportagent.tenant.campaign.TenantCampaign#getEmailDraftTemplateSnapshot()}.
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "email_draft_template", columnDefinition = "jsonb", nullable = false)
     private String emailDraftTemplate;
 }

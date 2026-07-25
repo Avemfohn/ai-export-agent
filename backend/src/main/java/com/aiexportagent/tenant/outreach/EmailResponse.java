@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -38,6 +40,7 @@ public class EmailResponse extends Auditable {
     private String classifiedIntent;
 
     // Simple String mapping for the JSONB column for this skeleton — no JSON<->POJO wiring yet.
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "classification_metadata", columnDefinition = "jsonb", nullable = false)
     private String classificationMetadata;
 

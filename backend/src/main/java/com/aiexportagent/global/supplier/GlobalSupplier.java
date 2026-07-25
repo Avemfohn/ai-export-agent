@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -47,6 +49,7 @@ public class GlobalSupplier extends Auditable {
     private String source;
 
     /** Simple String mapping for the JSONB column for this skeleton — no JSON<->POJO wiring yet. */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "enrichment_data", columnDefinition = "jsonb", nullable = false)
     private String enrichmentData;
 
