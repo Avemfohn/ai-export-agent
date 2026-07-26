@@ -26,3 +26,11 @@ export interface TenantLead {
   country: string;
   sector: string;
 }
+
+// Mirrors backend/.../tenant/lead/dto/BulkUpdateLeadStatusResponse.java
+export interface BulkUpdateLeadStatusResponse {
+  requested: number;
+  updated: number;
+  skippedWrongStatus: number;
+  notFoundOrForeignTenant: number;
+}

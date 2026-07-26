@@ -1,6 +1,8 @@
 package com.aiexportagent.tenant.lead;
 
 import com.aiexportagent.common.exception.ApiException;
+import com.aiexportagent.tenant.lead.dto.BulkUpdateLeadStatusRequest;
+import com.aiexportagent.tenant.lead.dto.BulkUpdateLeadStatusResponse;
 import com.aiexportagent.tenant.lead.dto.TenantLeadResponse;
 import com.aiexportagent.tenant.lead.dto.UpdateLeadStatusRequest;
 import lombok.RequiredArgsConstructor;
@@ -45,5 +47,16 @@ public class TenantLeadController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
         }
         return tenantLeadService.updateStatusForCurrentTenant(id, newStatus);
+    }
+
+    @PatchMapping("/status/bulk")
+    public BulkUpdateLeadStatusResponse bulkUpdateStatus(@RequestBody BulkUpdateLeadStatusRequest request) {
+        LeadStatus newStatus;
+        try {
+            newStatus = LeadStatus.valueOf(request.status());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
+        }
+        return tenantLeadService.bulkUpdateStatusForCurrentTenant(request.leadIds(), newStatus);
     }
 }

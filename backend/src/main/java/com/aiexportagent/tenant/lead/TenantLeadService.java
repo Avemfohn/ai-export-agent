@@ -5,6 +5,7 @@ import com.aiexportagent.common.exception.NotFoundException;
 import com.aiexportagent.common.tenant.TenantContext;
 import com.aiexportagent.global.supplier.GlobalSupplier;
 import com.aiexportagent.global.supplier.GlobalSupplierService;
+import com.aiexportagent.tenant.lead.dto.BulkUpdateLeadStatusResponse;
 import com.aiexportagent.tenant.lead.dto.TenantLeadResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -58,6 +60,57 @@ public class TenantLeadService {
         }
         lead.setStatus(newStatus);
         return toResponse(tenantLeadRepository.save(lead));
+    }
+
+    /**
+     * Bulk approve/reject for the review-at-scale flow: processes what it
+     * can and reports counts rather than an all-or-nothing 409, matching
+     * every other batch operation in this codebase
+     * ({@code LeadScoringService}, {@code OutreachDraftingService}). Tenant
+     * isolation is structural, not an extra check — {@code leadIds} is
+     * never trusted: only ids returned by {@code findByIdInAndTenantId} for
+     * the CURRENT tenant are candidates for update, so an id belonging to
+     * another tenant (or that doesn't exist) simply never matches and is
+     * counted in {@code notFoundOrForeignTenant}, never processed.
+     *
+     * <p>Single {@code @Transactional} (not per-item REQUIRES_NEW like
+     * {@link #createAiScoredLead}) is correct here — unlike AI scoring/
+     * drafting, there's no external HTTP call in this loop, just fast
+     * in-DB status flips, so nothing benefits from a shorter transaction.
+     */
+    @Transactional
+    public BulkUpdateLeadStatusResponse bulkUpdateStatusForCurrentTenant(List<UUID> leadIds, LeadStatus newStatus) {
+        if (newStatus != LeadStatus.APPROVED && newStatus != LeadStatus.REJECTED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "status must be APPROVED or REJECTED, got: " + newStatus);
+        }
+        if (leadIds == null || leadIds.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "leadIds must be a non-empty list");
+        }
+
+        List<TenantLead> owned = tenantLeadRepository.findByIdInAndTenantId(leadIds, TenantContext.get());
+        Map<UUID, TenantLead> byId = owned.stream().collect(Collectors.toMap(TenantLead::getId, l -> l));
+
+        int updated = 0;
+        int skippedWrongStatus = 0;
+        int notFoundOrForeignTenant = 0;
+
+        for (UUID id : leadIds) {
+            TenantLead lead = byId.get(id);
+            if (lead == null) {
+                notFoundOrForeignTenant++;
+                continue;
+            }
+            if (lead.getStatus() != LeadStatus.PENDING_APPROVAL) {
+                skippedWrongStatus++;
+                continue;
+            }
+            lead.setStatus(newStatus);
+            tenantLeadRepository.save(lead);
+            updated++;
+        }
+
+        return new BulkUpdateLeadStatusResponse(leadIds.size(), updated, skippedWrongStatus, notFoundOrForeignTenant);
     }
 
     /** Used by the AI scoring engine to skip global_suppliers already linked to this tenant. */

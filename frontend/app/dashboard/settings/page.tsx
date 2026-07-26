@@ -7,14 +7,15 @@ import {
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/settings/theme-toggle";
 import { LanguageSwitcher } from "@/components/settings/language-switcher";
+import { AutoApproveThresholdCard } from "@/components/settings/auto-approve-threshold-card";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { getTenantSettings } from "@/lib/api/tenant-settings";
 
-// NOTE: tenant_settings has no dedicated backend endpoint documented yet
-// (Sprint 1, mock-data phase). This renders the expected shape read-only,
-// matching the "buyer criteria" fields described in CLAUDE.md's AI-filtering
-// step. Wire this up to a real GET /api/tenant-settings call once the
-// backend exposes it.
+// NOTE: buyer_criteria (JSONB) still has no dedicated update endpoint
+// (Sprint 1, mock-data phase) — that card below stays read-only. The
+// auto-approve threshold is the first real tenant_settings mutation, wired
+// to GET/PATCH /api/tenant-settings.
 
 export default async function SettingsPage() {
   const locale = await getLocale();
@@ -27,6 +28,17 @@ export default async function SettingsPage() {
     dict.settings.buyerCriteria.excludedKeywords,
     dict.settings.buyerCriteria.preferredLanguages,
   ];
+
+  let autoApproveThreshold: number | null = null;
+  try {
+    // Backend uses default-property-inclusion: non_null (application.yml),
+    // so a null threshold is OMITTED from the JSON, not sent as `null` —
+    // normalize to null here so `initialThreshold !== null` downstream works.
+    autoApproveThreshold = (await getTenantSettings()).autoApproveThreshold ?? null;
+  } catch {
+    // Fall through with null — the card below is still usable (defaults to
+    // "off"), just can't reflect a saved value if the backend is unreachable.
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -47,6 +59,16 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <LanguageSwitcher />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{dict.settings.autoApprove.title}</CardTitle>
+          <CardDescription>{dict.settings.autoApprove.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AutoApproveThresholdCard initialThreshold={autoApproveThreshold} />
         </CardContent>
       </Card>
 

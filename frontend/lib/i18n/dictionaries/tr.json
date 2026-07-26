@@ -59,6 +59,25 @@
       "NOT_INTERESTED": "İlgilenmiyor",
       "BOUNCED": "Geri Döndü",
       "CONVERTED": "Dönüştürüldü"
+    },
+    "filters": {
+      "statusLabel": "Durum",
+      "sectorLabel": "Sektör",
+      "scoreMinLabel": "Min. Puan",
+      "scoreMaxLabel": "Maks. Puan",
+      "allStatuses": "Tüm Durumlar",
+      "allSectors": "Tüm Sektörler",
+      "clearFilters": "Filtreleri Temizle"
+    },
+    "bulk": {
+      "approveSelected": "Seçilenleri Onayla",
+      "rejectSelected": "Seçilenleri Reddet",
+      "approving": "Onaylanıyor…",
+      "rejecting": "Reddediliyor…",
+      "bulkActionError": "Bir şeyler ters gitti — lütfen tekrar deneyin.",
+      "selectAllHeader": "Görünümdeki onay bekleyen tüm adayları seç",
+      "selectRowLabel": "Adayı seç",
+      "selectedSuffix": "seçildi"
     }
   },
   "campaigns": {
@@ -176,6 +195,17 @@
       "description": "Panelin görüntülenme dilini seçin.",
       "english": "English",
       "turkish": "Türkçe"
+    },
+    "autoApprove": {
+      "title": "Otomatik Onay Eşiği",
+      "description": "İsteğe bağlı olarak, belirli bir puanın üzerindeki yapay zekâ tarafından puanlanmış adayları manuel incelemeye gerek kalmadan otomatik onaylayın.",
+      "enableLabel": "Otomatik onayı etkinleştir",
+      "thresholdLabel": "Otomatik onay puan eşiği",
+      "thresholdHelp": "Bu değere eşit veya bunun üzerinde puan alan adaylar, inceleme kuyruğuna girmeden otomatik olarak onaylanır.",
+      "saveButton": "Kaydet",
+      "savingLabel": "Kaydediliyor…",
+      "savedLabel": "Kaydedildi",
+      "errorLabel": "Kaydedilemedi — lütfen tekrar deneyin."
     }
   }
 }

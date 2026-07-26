@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -60,4 +61,14 @@ public class TenantSettings extends Auditable {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "email_draft_template", columnDefinition = "jsonb", nullable = false)
     private String emailDraftTemplate;
+
+    /**
+     * Optional per-tenant score threshold: AI-scored leads meeting or
+     * exceeding this value are created directly as APPROVED, skipping the
+     * PENDING_APPROVAL review queue. Null (the default) means auto-approve
+     * is off and every match still goes through manual review. See
+     * {@link com.aiexportagent.ai.scoring.LeadScoringService}.
+     */
+    @Column(name = "auto_approve_threshold", precision = 5, scale = 2)
+    private BigDecimal autoApproveThreshold;
 }

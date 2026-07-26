@@ -53,6 +53,18 @@ public class LeadScoringService {
      * short transaction (see the called services), and
      * {@link TenantLeadService#createAiScoredLead} opens its own
      * REQUIRES_NEW transaction per lead, committing immediately.
+     *
+     * <p>Status decision is 3-way, checked in this order: (1) if the
+     * tenant's {@code auto_approve_threshold} is set and the score meets or
+     * exceeds it, the lead is created directly as {@code APPROVED} —
+     * skipping manual review entirely; (2) else if the score meets the
+     * global {@code app.ai.match-threshold}, {@code PENDING_APPROVAL}; (3)
+     * else {@code REJECTED}. A tenant that sets an auto-approve threshold
+     * below the match threshold will see branch (1) win for scores that
+     * would otherwise have only reached {@code PENDING_APPROVAL} — this is
+     * allowed and not cross-validated, since enforcing an ordering would
+     * require wiring {@code matchThreshold} into {@code TenantSettingsService}
+     * for what is a soft misconfiguration, not a correctness issue.
      */
     public LeadScoringSummaryResponse scoreForCurrentTenant() {
         TenantSettings settings = tenantSettingsService.getForCurrentTenant();
@@ -62,28 +74,37 @@ public class LeadScoringService {
                 .filter(supplier -> !alreadyLinked.contains(supplier.getId()))
                 .toList();
 
+        BigDecimal autoApproveThreshold = settings.getAutoApproveThreshold();
         int matched = 0;
+        int autoApproved = 0;
         int rejected = 0;
         int failed = 0;
 
         for (GlobalSupplier supplier : candidates) {
             try {
                 AiScoringResult result = aiClient.score(toRequest(settings, supplier));
-                LeadStatus status = result.score() >= matchThreshold
-                        ? LeadStatus.PENDING_APPROVAL
-                        : LeadStatus.REJECTED;
+                BigDecimal score = BigDecimal.valueOf(result.score());
+
+                LeadStatus status;
+                if (autoApproveThreshold != null && score.compareTo(autoApproveThreshold) >= 0) {
+                    status = LeadStatus.APPROVED;
+                } else if (result.score() >= matchThreshold) {
+                    status = LeadStatus.PENDING_APPROVAL;
+                } else {
+                    status = LeadStatus.REJECTED;
+                }
 
                 tenantLeadService.createAiScoredLead(
                         supplier.getId(),
                         status,
-                        BigDecimal.valueOf(result.score()),
+                        score,
                         result.rationale(),
                         toMetadataJson(result));
 
-                if (status == LeadStatus.PENDING_APPROVAL) {
-                    matched++;
-                } else {
-                    rejected++;
+                switch (status) {
+                    case APPROVED -> autoApproved++;
+                    case PENDING_APPROVAL -> matched++;
+                    default -> rejected++;
                 }
             } catch (Exception e) {
                 // Catches both AI-call failures (AiClientException) and DB-write failures
@@ -96,7 +117,7 @@ public class LeadScoringService {
             }
         }
 
-        return new LeadScoringSummaryResponse(candidates.size(), matched, rejected, failed);
+        return new LeadScoringSummaryResponse(candidates.size(), matched, autoApproved, rejected, failed);
     }
 
     private static AiScoringRequest toRequest(TenantSettings settings, GlobalSupplier supplier) {

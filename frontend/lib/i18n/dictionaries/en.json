@@ -59,6 +59,25 @@
       "NOT_INTERESTED": "Not Interested",
       "BOUNCED": "Bounced",
       "CONVERTED": "Converted"
+    },
+    "filters": {
+      "statusLabel": "Status",
+      "sectorLabel": "Sector",
+      "scoreMinLabel": "Min Score",
+      "scoreMaxLabel": "Max Score",
+      "allStatuses": "All Statuses",
+      "allSectors": "All Sectors",
+      "clearFilters": "Clear Filters"
+    },
+    "bulk": {
+      "approveSelected": "Approve Selected",
+      "rejectSelected": "Reject Selected",
+      "approving": "Approving…",
+      "rejecting": "Rejecting…",
+      "bulkActionError": "Something went wrong — please try again.",
+      "selectAllHeader": "Select all pending leads in view",
+      "selectRowLabel": "Select lead",
+      "selectedSuffix": "selected"
     }
   },
   "campaigns": {
@@ -176,6 +195,17 @@
       "description": "Choose the dashboard's display language.",
       "english": "English",
       "turkish": "Türkçe"
+    },
+    "autoApprove": {
+      "title": "Auto-Approve Threshold",
+      "description": "Optionally auto-approve AI-scored leads at or above a score, skipping manual review for your best matches.",
+      "enableLabel": "Enable auto-approve",
+      "thresholdLabel": "Auto-approve score threshold",
+      "thresholdHelp": "Leads scoring at or above this value are approved automatically instead of entering the review queue.",
+      "saveButton": "Save",
+      "savingLabel": "Saving…",
+      "savedLabel": "Saved",
+      "errorLabel": "Could not save — please try again."
     }
   }
 }
