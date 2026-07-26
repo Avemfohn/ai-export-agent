@@ -170,6 +170,24 @@ public class TenantLeadService {
         return tenantLeadRepository.save(lead);
     }
 
+    /**
+     * Marks a lead EMAIL_SENT after a successful send — called by
+     * {@code OutreachSendingScheduler} (system-internal, not client input),
+     * with {@link TenantContext} already set to this lead's own tenant.
+     * Guarded to only apply from APPROVED, same "only sensible transition"
+     * discipline as every other status-writing method here, even though
+     * this isn't reachable from a client request.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markEmailSentForCurrentTenant(UUID leadId) {
+        TenantLead lead = tenantLeadRepository.findByIdAndTenantId(leadId, TenantContext.get())
+                .orElseThrow(() -> new NotFoundException("Lead not found: " + leadId));
+        if (lead.getStatus() == LeadStatus.APPROVED) {
+            lead.setStatus(LeadStatus.EMAIL_SENT);
+            tenantLeadRepository.save(lead);
+        }
+    }
+
     private TenantLeadResponse toResponse(TenantLead lead) {
         GlobalSupplier supplier = globalSupplierService.getById(lead.getGlobalSupplierId());
         return TenantLeadResponse.from(lead, supplier);

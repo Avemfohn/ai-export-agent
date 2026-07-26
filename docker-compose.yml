@@ -33,9 +33,15 @@ services:
       AI_MATCH_THRESHOLD: "60"
       OPENAI_API_KEY: ""
       ANTHROPIC_API_KEY: ""
-      # Placeholders for future integrations, unused in Sprint 1 (mock data only):
-      APIFY_TOKEN: ""
+      # Automated approve -> draft -> send pipeline: defaults to the mock
+      # email provider, no key needed. Set EMAIL_PROVIDER=mailgun + the
+      # MAILGUN_* vars below to actually send. Conservative pacing by
+      # default (~1 email/60s) via EMAIL_SEND_INTERVAL_MS/EMAIL_SEND_BATCH_SIZE.
+      EMAIL_PROVIDER: mock
       MAILGUN_API_KEY: ""
+      MAILGUN_DOMAIN: ""
+      # Placeholder for future integration, unused in Sprint 1 (mock data only):
+      APIFY_TOKEN: ""
     ports:
       - "8080:8080"
 

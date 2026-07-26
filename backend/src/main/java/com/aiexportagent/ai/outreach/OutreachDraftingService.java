@@ -29,9 +29,17 @@ import java.util.UUID;
  * Orchestrates AI outreach-email drafting for the current tenant: for every
  * APPROVED tenant_lead that doesn't already have an outreach_email, resolves
  * the applicable base draft template (campaign snapshot if the lead belongs
- * to one, else the tenant default), picks a contact, has the AI customize
- * the template, and stores the result as a DRAFT outreach_email.
- * Create-only / idempotent — never touches a lead that already has one.
+ * to one, else the tenant default), picks a contact, and has the AI
+ * customize the template. Create-only / idempotent — never touches a lead
+ * that already has an outreach_email.
+ *
+ * <p>Two entry points sharing the same candidate-finding + AI-drafting
+ * logic, differing only in the resulting row's initial status:
+ * {@link #draftForCurrentTenant()} (manual, via {@code POST
+ * /api/outreach-emails/draft}, produces DRAFT — a testing/backfill escape
+ * hatch) and {@link #queueForCurrentTenant()} (automated, via {@code
+ * OutreachQueueingScheduler}, produces QUEUED directly — the real
+ * approve-to-send pipeline, where DRAFT is deliberately never persisted).
  */
 @Slf4j
 @Service
@@ -58,12 +66,7 @@ public class OutreachDraftingService {
      */
     public OutreachDraftSummaryResponse draftForCurrentTenant() {
         TenantSettings settings = tenantSettingsService.getForCurrentTenant();
-        List<TenantLead> approvedLeads = tenantLeadService.findByStatusForCurrentTenant(LeadStatus.APPROVED);
-        Set<UUID> alreadyDrafted = outreachEmailService.getLeadIdsWithOutreachForCurrentTenant();
-
-        List<TenantLead> candidates = approvedLeads.stream()
-                .filter(lead -> !alreadyDrafted.contains(lead.getId()))
-                .toList();
+        List<TenantLead> candidates = findUndraftedApprovedLeadsForCurrentTenant();
 
         int drafted = 0;
         int skippedNoContact = 0;
@@ -71,31 +74,14 @@ public class OutreachDraftingService {
 
         for (TenantLead lead : candidates) {
             try {
-                GlobalSupplier supplier = globalSupplierService.getById(lead.getGlobalSupplierId());
-                Optional<GlobalSupplierContact> contact = pickContact(supplier.getId(), globalSupplierContactService);
-
-                if (contact.isEmpty()) {
+                Optional<DraftedEmail> draft = draftOneLead(settings, lead);
+                if (draft.isEmpty()) {
                     skippedNoContact++;
-                    log.warn("Skipping outreach draft for lead {} ({}): no contact on file",
-                            lead.getId(), supplier.getDomain());
+                    log.warn("Skipping outreach draft for lead {}: no contact on file", lead.getId());
                     continue;
                 }
-
-                String templateJson = resolveTemplate(settings, lead);
-                AiEmailDraftRequest request = new AiEmailDraftRequest(
-                        templateJson,
-                        supplier.getCompanyName(),
-                        supplier.getDomain(),
-                        supplier.getSector(),
-                        supplier.getDescription(),
-                        contact.get().getFullName(),
-                        contact.get().getJobTitle(),
-                        settings.getEmailSenderName());
-
-                AiEmailDraftResult result = aiClient.draftEmail(request);
-
                 outreachEmailService.createDraftEmail(
-                        lead.getId(), contact.get().getEmail(), result.subject(), result.body());
+                        draft.get().leadId(), draft.get().toEmail(), draft.get().subject(), draft.get().body());
                 drafted++;
             } catch (Exception e) {
                 // Catches both AI-call failures and DB-write failures — one bad lead
@@ -107,6 +93,74 @@ public class OutreachDraftingService {
         }
 
         return new OutreachDraftSummaryResponse(candidates.size(), drafted, skippedNoContact, failed);
+    }
+
+    /**
+     * Same candidate-finding + AI-drafting logic as {@link #draftForCurrentTenant()},
+     * but inserts each result directly as QUEUED via
+     * {@link OutreachEmailService#createQueuedEmail} instead of DRAFT.
+     * Called by {@code OutreachQueueingScheduler} — the automated path,
+     * where DRAFT is deliberately never a persisted state (see CLAUDE.md's
+     * automated outreach pipeline: "DRAFT is invisible in the automated flow").
+     */
+    public OutreachDraftSummaryResponse queueForCurrentTenant() {
+        TenantSettings settings = tenantSettingsService.getForCurrentTenant();
+        List<TenantLead> candidates = findUndraftedApprovedLeadsForCurrentTenant();
+
+        int queued = 0;
+        int skippedNoContact = 0;
+        int failed = 0;
+
+        for (TenantLead lead : candidates) {
+            try {
+                Optional<DraftedEmail> draft = draftOneLead(settings, lead);
+                if (draft.isEmpty()) {
+                    skippedNoContact++;
+                    log.warn("Skipping outreach queueing for lead {}: no contact on file", lead.getId());
+                    continue;
+                }
+                outreachEmailService.createQueuedEmail(
+                        draft.get().leadId(), draft.get().toEmail(), draft.get().subject(), draft.get().body());
+                queued++;
+            } catch (Exception e) {
+                failed++;
+                log.warn("Outreach queueing failed for lead {}: {}", lead.getId(), e.getMessage());
+            }
+        }
+
+        return new OutreachDraftSummaryResponse(candidates.size(), queued, skippedNoContact, failed);
+    }
+
+    private List<TenantLead> findUndraftedApprovedLeadsForCurrentTenant() {
+        List<TenantLead> approvedLeads = tenantLeadService.findByStatusForCurrentTenant(LeadStatus.APPROVED);
+        Set<UUID> alreadyDrafted = outreachEmailService.getLeadIdsWithOutreachForCurrentTenant();
+        return approvedLeads.stream().filter(lead -> !alreadyDrafted.contains(lead.getId())).toList();
+    }
+
+    /** Empty means "skip, no contact on file" — distinct from a thrown exception (a hard failure). */
+    private Optional<DraftedEmail> draftOneLead(TenantSettings settings, TenantLead lead) {
+        GlobalSupplier supplier = globalSupplierService.getById(lead.getGlobalSupplierId());
+        Optional<GlobalSupplierContact> contact = pickContact(supplier.getId(), globalSupplierContactService);
+        if (contact.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String templateJson = resolveTemplate(settings, lead);
+        AiEmailDraftRequest request = new AiEmailDraftRequest(
+                templateJson,
+                supplier.getCompanyName(),
+                supplier.getDomain(),
+                supplier.getSector(),
+                supplier.getDescription(),
+                contact.get().getFullName(),
+                contact.get().getJobTitle(),
+                settings.getEmailSenderName());
+
+        AiEmailDraftResult result = aiClient.draftEmail(request);
+        return Optional.of(new DraftedEmail(lead.getId(), contact.get().getEmail(), result.subject(), result.body()));
+    }
+
+    private record DraftedEmail(UUID leadId, String toEmail, String subject, String body) {
     }
 
     /** Prefers the primary contact, falls back to the first available one, else empty. */

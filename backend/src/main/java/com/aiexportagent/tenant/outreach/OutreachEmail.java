@@ -42,4 +42,8 @@ public class OutreachEmail extends Auditable {
 
     @Column(name = "sent_at")
     private OffsetDateTime sentAt;
+
+    /** Populated only when status transitions to FAILED. */
+    @Column(name = "error_message", columnDefinition = "text")
+    private String errorMessage;
 }

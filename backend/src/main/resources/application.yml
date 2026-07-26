@@ -24,3 +24,17 @@ app:
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
       model: ${ANTHROPIC_MODEL:claude-3-5-haiku-latest}
+  email:
+    # mock | mailgun — see CLAUDE.md automated outreach pipeline. Defaults to
+    # mock so the queue-and-send flow works out of the box with no API key.
+    provider: ${EMAIL_PROVIDER:mock}
+    # How often the queueing/sending schedulers tick, and how many QUEUED
+    # emails the sender picks up per tick — defaults reproduce a conservative
+    # ~1 email/60s pace, safe for a sending domain with no reputation yet.
+    queue-interval-ms: ${EMAIL_QUEUE_INTERVAL_MS:60000}
+    send-interval-ms: ${EMAIL_SEND_INTERVAL_MS:60000}
+    send-batch-size: ${EMAIL_SEND_BATCH_SIZE:1}
+    mailgun:
+      api-key: ${MAILGUN_API_KEY:}
+      domain: ${MAILGUN_DOMAIN:}
+      from-address: ${MAILGUN_FROM_ADDRESS:}
