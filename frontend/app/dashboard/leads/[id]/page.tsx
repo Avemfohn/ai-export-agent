@@ -6,12 +6,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import { RequeueButton } from "@/components/outreach/requeue-button";
 import { ApiError } from "@/lib/api/client";
 import { getLead } from "@/lib/api/leads";
+import { getOutreachEmails } from "@/lib/api/outreach";
+import type { OutreachEmail, OutreachEmailStatus } from "@/lib/types/outreach";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+
+const STATUS_VARIANT: Record<
+  OutreachEmailStatus,
+  "success" | "warning" | "slate" | "destructive"
+> = {
+  DRAFT: "slate",
+  QUEUED: "warning",
+  SENT: "success",
+  FAILED: "destructive",
+  BOUNCED: "destructive",
+};
+
+/**
+ * There's no per-lead outreach endpoint yet, so filter the tenant's list
+ * client-side — same approach the dashboard overview already takes, and fine
+ * at mock-data scale. A failure here must not blank the whole lead page.
+ */
+async function getEmailsForLead(leadId: string): Promise<OutreachEmail[]> {
+  try {
+    const emails = await getOutreachEmails();
+    return emails.filter((email) => email.tenantLeadId === leadId);
+  } catch {
+    return [];
+  }
+}
 
 export default async function LeadDetailPage({
   params,
@@ -24,6 +53,7 @@ export default async function LeadDetailPage({
 
   try {
     const lead = await getLead(id);
+    const emails = await getEmailsForLead(id);
 
     return (
       <div className="space-y-6">
@@ -87,7 +117,43 @@ export default async function LeadDetailPage({
             <CardTitle>{dict.leads.detail.outreachEmails}</CardTitle>
           </CardHeader>
           <CardContent>
-            <EmptyState title={dict.leads.detail.noEmails} />
+            {emails.length === 0 ? (
+              <EmptyState title={dict.leads.detail.noEmails} />
+            ) : (
+              <ul className="space-y-4">
+                {emails.map((email) => (
+                  <li
+                    key={email.id}
+                    className="space-y-2 border-b border-border pb-4 last:border-0 last:pb-0"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          {email.subject}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {email.toEmail}
+                          {email.sentAt
+                            ? ` · ${new Date(email.sentAt).toLocaleString()}`
+                            : ""}
+                        </p>
+                      </div>
+                      <Badge variant={STATUS_VARIANT[email.status]}>
+                        {dict.outreach.status[email.status]}
+                      </Badge>
+                    </div>
+                    {email.errorMessage ? (
+                      <p className="text-xs text-destructive">
+                        {dict.outreach.failureLabel}: {email.errorMessage}
+                      </p>
+                    ) : null}
+                    {email.status === "FAILED" ? (
+                      <RequeueButton emailId={email.id} />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 

@@ -1,10 +1,12 @@
 package com.aiexportagent.tenant.outreach;
 
+import com.aiexportagent.common.exception.ApiException;
 import com.aiexportagent.common.exception.NotFoundException;
 import com.aiexportagent.common.tenant.TenantContext;
 import com.aiexportagent.tenant.lead.TenantLeadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,9 +83,48 @@ public class OutreachEmailService {
      * {@link OutreachEmailRepository#findByStatusOrderByCreatedAtAsc}. Used
      * only by {@code OutreachSendingScheduler} to pick the next batch to
      * send, oldest-queued-first, across all tenants.
+     *
+     * <p>Note on ordering: a requeued email (see
+     * {@link #requeueForCurrentTenant}) keeps its original {@code created_at}
+     * — {@code @UpdateTimestamp} only touches {@code updated_at} — so it
+     * sorts ahead of newer QUEUED rows, including other tenants'. That's
+     * intended (a recovered failure is older work and should go first), but
+     * with the default batch size of 1 it does mean requeueing N old
+     * failures delays everyone else's fresh sends by N ticks.
      */
     public List<OutreachEmail> findOldestQueuedGlobal(int limit) {
         return outreachEmailRepository.findByStatusOrderByCreatedAtAsc("QUEUED", PageRequest.of(0, limit));
+    }
+
+    /**
+     * Operator recovery for a failed send: puts a FAILED email back on the
+     * queue so {@code OutreachSendingScheduler} retries it on its next tick.
+     *
+     * <p>This is deliberately a manual action rather than an automatic retry.
+     * The sending pipeline never retries on its own (see CLAUDE.md), and it
+     * must stay that way: {@code OutreachDraftingService} also treats *any*
+     * existing outreach_email — FAILED included — as "this lead is already
+     * handled", so making failures self-healing would have the 60s queueing
+     * scheduler re-draft (a billed AI call) and re-queue the same lead every
+     * tick forever.
+     *
+     * <p>Needs its own {@code @Transactional} to override the class-level
+     * {@code readOnly = true}: inherited, Hibernate would set
+     * {@code FlushMode.MANUAL} and drop this update silently — a 200 response
+     * with no database change. Same reason {@link #markSent}/{@link #markFailed}
+     * re-annotate.
+     */
+    @Transactional
+    public OutreachEmail requeueForCurrentTenant(UUID emailId) {
+        OutreachEmail email = outreachEmailRepository.findByIdAndTenantId(emailId, TenantContext.get())
+                .orElseThrow(() -> new NotFoundException("Outreach email not found: " + emailId));
+        if (!"FAILED".equals(email.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Outreach email " + emailId + " is " + email.getStatus() + ", not FAILED — only a failed send can be requeued");
+        }
+        email.setStatus("QUEUED");
+        email.setErrorMessage(null);
+        return outreachEmailRepository.save(email);
     }
 
     /**

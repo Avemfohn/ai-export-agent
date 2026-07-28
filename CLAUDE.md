@@ -55,9 +55,10 @@ to scale into a multi-tenant vertical SaaS product.
 - **Backend**: Java 21, Maven, Spring Boot — package base `com.aiexportagent`
 - **Frontend**: Next.js (App Router), Shadcn UI, Tailwind CSS, pnpm
 - **DB**: PostgreSQL, Flyway migrations, Dockerized
-- **AI**: lead scoring is wired (see "AI Lead Scoring" below) via Spring's
-  built-in `RestClient`, not LangChain4j (see "AI Integration Notes"). Cold
-  email drafting and reply-intent classification are not built yet.
+- **AI**: lead scoring and cold-email drafting are both wired (see "AI Lead
+  Scoring" / "AI Outreach Drafting" below) via Spring's built-in
+  `RestClient`, not LangChain4j (see "AI Integration Notes"). Reply-intent
+  classification is not built yet.
 - **Scraping** (not wired yet): Apify/Bright Data actors + webhooks
 - **Email**: Mailgun, with inbound webhook support for reply tracking — chosen
   over Resend specifically because inbound reply tracking / intent
@@ -148,6 +149,38 @@ integration yet). Create-only/idempotent, same as lead scoring.
   `REQUIRES_NEW`, and per-lead failures are caught broadly so one bad lead
   doesn't abort the batch.
 
+### Automated Outreach Pipeline (`com.aiexportagent.email`)
+
+Once a lead is `APPROVED`, two `@Scheduled` jobs carry it the rest of the
+way with no manual trigger — `OutreachQueueingScheduler` (AI-drafts every
+undrafted `APPROVED` lead and inserts it straight as `QUEUED`) and
+`OutreachSendingScheduler` (sends the globally-oldest `QUEUED` email, then
+marks it `SENT` and cascades the lead to `EMAIL_SENT`).
+
+- **`DRAFT` is invisible in the automated flow.** The automated path never
+  persists a `DRAFT` row; only the manual `POST /api/outreach-emails/draft`
+  escape hatch produces those.
+- **Pacing is conservative and global**, not per-tenant: `app.email.send-interval-ms`
+  × `app.email.send-batch-size` defaults to ~1 email/60s across all tenants.
+- `EmailSender` mirrors the `AiClient` split — `MockEmailSender` is the
+  default (`app.email.provider=mock`), `MailgunEmailSender` is opt-in.
+- These schedulers are the only code that runs outside an HTTP request, so
+  they must set `TenantContext` explicitly per iteration and clear it in a
+  `finally` — `TenantContextFilter` isn't there to do it for them.
+
+**A failed send is never retried automatically, and that is deliberate.**
+`markFailed` records the error and stops; the lead stays `APPROVED`. Recovery
+is an explicit operator action — `POST /api/outreach-emails/{id}/requeue`
+(`FAILED` → `QUEUED` only, 409 otherwise), surfaced in the UI on the outreach
+table, the lead detail page, and a dashboard "failed sends" stat.
+
+Do **not** "fix" this by making failures self-healing. `OutreachDraftingService`
+treats *any* existing `outreach_emails` row — `FAILED` included — as "this lead
+is already handled". Excluding `FAILED` from that check would have the 60s
+queueing scheduler re-draft (a **billed AI call**) and re-queue the same lead
+every single tick, forever. The blocking behaviour and the manual-only recovery
+are two halves of the same design.
+
 ## 4. Folder Map
 
 ```
@@ -200,9 +233,14 @@ integrations are wired in.
   no OpenAI/Anthropic key is configured anywhere by default, so no billed
   calls happen unless you explicitly set `AI_PROVIDER` + an API key. See "AI
   Lead Scoring" above.
-- **No real Apify/Resend/Mailgun calls yet.** Those integration points exist
-  as empty placeholder packages (`scraping/`, `email/`) to be filled in in a
-  later sprint.
+- **No real Apify calls yet** — `scraping/` is still an empty placeholder
+  package, so nothing ever creates a `scraping_jobs` row.
+- **Outbound email is built but not live.** `email/` has a real
+  `MailgunEmailSender` and the full automated send pipeline (see above), but
+  `app.email.provider` defaults to `mock`, so no mail actually leaves the
+  machine unless you set `EMAIL_PROVIDER=mailgun` + credentials. The
+  **inbound** side — the reply webhook that would populate `email_responses`
+  and classify reply intent — is not built at all.
 - **No real tenant login yet.** A hardcoded dev `tenant_id` (env var
   `DEV_TENANT_ID`) is injected into every request via `TenantContextFilter`,
   so tenant-scoping code paths are real and exercised even though there's no

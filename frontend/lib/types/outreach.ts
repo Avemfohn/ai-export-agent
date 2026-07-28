@@ -9,8 +9,13 @@ export type OutreachEmailStatus =
 
 export interface OutreachEmail {
   id: string;
+  tenantLeadId: string;
   toEmail: string;
   subject: string;
   status: OutreachEmailStatus;
-  sentAt: string | null;
+  // Optional, not just nullable: the backend sets Jackson's
+  // default-property-inclusion to non_null, so these keys are absent from the
+  // JSON rather than null. Always test with truthiness, never `=== null`.
+  errorMessage?: string | null;
+  sentAt?: string | null;
 }

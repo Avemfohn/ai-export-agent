@@ -20,6 +20,7 @@
     "warmReplies": "Warm Replies",
     "activeCampaigns": "Active Campaigns",
     "scrapingJobs": "Scraping Jobs",
+    "failedSends": "Failed Sends",
     "backendUnavailable": "Backend unavailable",
     "footnote": "Data is fetched live from the backend API on each load. If a card shows a dash, the backend was unreachable at request time."
   },
@@ -105,12 +106,19 @@
       "to": "To",
       "subject": "Subject",
       "status": "Status",
-      "sentAt": "Sent At"
+      "sentAt": "Sent At",
+      "actions": "Actions"
     },
     "errorTitle": "Could not load outreach emails",
     "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL.",
     "emptyTitle": "No outreach emails sent yet",
     "emptyDescription": "Emails sent to qualified leads will show up here.",
+    "failureLabel": "Send failed",
+    "requeue": {
+      "button": "Requeue",
+      "pending": "Requeueing…",
+      "error": "Could not requeue"
+    },
     "status": {
       "DRAFT": "Draft",
       "QUEUED": "Queued",

@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { RequeueButton } from "@/components/outreach/requeue-button";
 import { getOutreachEmails } from "@/lib/api/outreach";
 import type { OutreachEmailStatus } from "@/lib/types/outreach";
 import { getLocale } from "@/lib/i18n/get-locale";
@@ -67,6 +68,7 @@ export default async function OutreachPage() {
           <TableHead>{dict.outreach.table.subject}</TableHead>
           <TableHead>{dict.outreach.table.status}</TableHead>
           <TableHead className="text-right">{dict.outreach.table.sentAt}</TableHead>
+          <TableHead className="text-right">{dict.outreach.table.actions}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -77,6 +79,11 @@ export default async function OutreachPage() {
             </TableCell>
             <TableCell className="text-muted-foreground">
               {email.subject}
+              {email.errorMessage ? (
+                <p className="mt-1 text-xs text-destructive">
+                  {email.errorMessage}
+                </p>
+              ) : null}
             </TableCell>
             <TableCell>
               <Badge variant={STATUS_VARIANT[email.status]}>
@@ -85,6 +92,11 @@ export default async function OutreachPage() {
             </TableCell>
             <TableCell className="text-right text-muted-foreground">
               {email.sentAt ? new Date(email.sentAt).toLocaleString() : "—"}
+            </TableCell>
+            <TableCell className="text-right">
+              {email.status === "FAILED" ? (
+                <RequeueButton emailId={email.id} />
+              ) : null}
             </TableCell>
           </TableRow>
         ))}

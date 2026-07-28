@@ -40,6 +40,16 @@ public class OutreachSendingScheduler {
     @Value("${app.email.send-batch-size:1}")
     private int sendBatchSize;
 
+    /**
+     * Processes the batch <strong>serially</strong>, and that is load-bearing:
+     * it's the only thing preventing a row from being sent twice, since
+     * {@code markFailed}/{@code markSent} commit only after the attempt is
+     * fully over, and {@code OutreachEmail} has no {@code @Version} column to
+     * fall back on. A requeued email (see
+     * {@code OutreachEmailService.requeueForCurrentTenant}) re-enters this
+     * loop as an ordinary QUEUED row. If this is ever parallelised or made
+     * {@code @Async} per email, add a status guard on the UPDATE first.
+     */
     @Scheduled(fixedDelayString = "${app.email.send-interval-ms:60000}")
     public void sendQueuedEmails() {
         List<OutreachEmail> batch = outreachEmailService.findOldestQueuedGlobal(sendBatchSize);

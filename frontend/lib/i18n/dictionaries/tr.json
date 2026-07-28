@@ -20,6 +20,7 @@
     "warmReplies": "Sıcak Yanıtlar",
     "activeCampaigns": "Aktif Kampanyalar",
     "scrapingJobs": "Tarama İşleri",
+    "failedSends": "Başarısız Gönderimler",
     "backendUnavailable": "Sunucuya ulaşılamıyor",
     "footnote": "Veriler her sayfa yüklendiğinde sunucudan canlı olarak çekilir. Bir kartta tire görünüyorsa, istek anında sunucuya ulaşılamamıştır."
   },
@@ -105,12 +106,19 @@
       "to": "Alıcı",
       "subject": "Konu",
       "status": "Durum",
-      "sentAt": "Gönderim Zamanı"
+      "sentAt": "Gönderim Zamanı",
+      "actions": "İşlemler"
     },
     "errorTitle": "Gönderimler yüklenemedi",
     "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun.",
     "emptyTitle": "Henüz gönderilen e-posta yok",
     "emptyDescription": "Nitelikli adaylara gönderilen e-postalar burada görünecek.",
+    "failureLabel": "Gönderim başarısız",
+    "requeue": {
+      "button": "Tekrar Sıraya Al",
+      "pending": "Sıraya alınıyor…",
+      "error": "Tekrar sıraya alınamadı"
+    },
     "status": {
       "DRAFT": "Taslak",
       "QUEUED": "Sırada",

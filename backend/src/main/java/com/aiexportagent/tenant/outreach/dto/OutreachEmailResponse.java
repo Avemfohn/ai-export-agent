@@ -13,6 +13,7 @@ public record OutreachEmailResponse(
         String body,
         String status,
         String providerMessageId,
+        String errorMessage,
         OffsetDateTime sentAt,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
@@ -27,6 +28,7 @@ public record OutreachEmailResponse(
                 email.getBody(),
                 email.getStatus(),
                 email.getProviderMessageId(),
+                email.getErrorMessage(),
                 email.getSentAt(),
                 email.getCreatedAt(),
                 email.getUpdatedAt()

@@ -1,9 +1,10 @@
-import { Users, MessageSquareText, Megaphone, Radar } from "lucide-react";
+import { Users, MessageSquareText, Megaphone, Radar, MailWarning } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLeads } from "@/lib/api/leads";
 import { getCampaigns } from "@/lib/api/campaigns";
 import { getEmailResponses } from "@/lib/api/responses";
+import { getOutreachEmails } from "@/lib/api/outreach";
 import { getScrapingJobs } from "@/lib/api/scraping-jobs";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -69,12 +70,13 @@ export default async function DashboardOverviewPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const [totalLeads, warmReplies, activeCampaigns, scrapingJobs] =
+  const [totalLeads, warmReplies, activeCampaigns, scrapingJobs, failedSends] =
     await Promise.all([
       safeCount(getLeads),
       safeCountWhere(getEmailResponses, (r) => r.classifiedIntent === "INTERESTED"),
       safeCountWhere(getCampaigns, (c) => c.status === "ACTIVE"),
       safeCount(getScrapingJobs),
+      safeCountWhere(getOutreachEmails, (e) => e.status === "FAILED"),
     ]);
 
   return (
@@ -102,6 +104,12 @@ export default async function DashboardOverviewPage() {
           label={dict.overview.scrapingJobs}
           icon={Radar}
           result={scrapingJobs}
+          backendUnavailableLabel={dict.overview.backendUnavailable}
+        />
+        <StatCard
+          label={dict.overview.failedSends}
+          icon={MailWarning}
+          result={failedSends}
           backendUnavailableLabel={dict.overview.backendUnavailable}
         />
       </div>
