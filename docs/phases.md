@@ -16,7 +16,7 @@ where we are right now.
 | # | Phase | Status | Gate |
 |---|---|---|---|
 | 0 | Failed-send recovery & visibility | ✅ Done | — |
-| 1 | Configuration UI | ⚪ Not started | — |
+| 1 | Configuration UI | ✅ Done | — |
 | 1b | Campaign create/edit | ⚪ Not started | after 1 |
 | 2 | Trade-fair upload ingestion | ⚪ Not started | — |
 | 3 | Operator controls + notifications | ⚪ Not started | after 2 |
@@ -43,28 +43,14 @@ and dashboard.
 
 ---
 
-## Phase 1 — Configuration UI
+## ✅ Phase 1 — Configuration UI
 
-**Goal:** let the customer configure the product at all.
+**Delivered 2026-07-30** · see [product-log](product-log.md#2026-07-30--configuration-ui)
 
-**Why it matters:** `buyer_criteria` drives every scoring decision and
-`email_draft_template` is the entire "AI personalises *your* pitch" premise —
-neither has an editing UI or an update endpoint. The core value proposition is
-currently unreachable by its own user. This is the biggest single blocker to a
-real pilot.
-
-**Scope**
-- Expose the settings fields the API currently withholds (it returns only the
-  auto-approve threshold today)
-- `PATCH` endpoint for buyer criteria, email template, sender identity fields
-- One reusable JSON editor card, used for both criteria and template
-
-**Key decision:** keep the JSON **opaque** — validate it parses, don't impose a
-schema. The AI interprets criteria holistically, so a rigid frontend schema would
-fight the architecture and break every time the shape shifts.
-
-**Done when:** the customer can edit buyer criteria in the UI, re-run scoring, and
-observe different scores and decisions.
+The customer can now edit buyer criteria and the email template, and see the
+effect via a "Test criteria" preview. Sender identity is shown read-only by
+design. Also closed a real hole where an unconfigured template would send blank
+emails.
 
 ---
 
@@ -73,11 +59,18 @@ observe different scores and decisions.
 **Goal:** manage campaigns, not just view them.
 
 **Why now:** campaigns carry their own criteria *and* template snapshots, so the
-editor is Phase 1's component plus name/description/status. Deferring this means
-building the same thing twice.
+editors are Phase 1's components plus name/description/status. Deferring this
+means building the same thing twice.
 
 **Scope:** create/update endpoints (campaigns are read-only today), create modal,
 typed form validation.
+
+**Carried over from Phase 1:**
+- Reuse `SettingsJsonValidator` for the snapshot columns — it was built shared
+  for exactly this.
+- Migrate `TenantCampaignResponse` to return real JSON rather than escaped
+  strings, matching what `TenantSettingsResponse` now does. Two conventions for
+  the same data is the thing to avoid.
 
 **Done when:** a campaign can be created and edited end-to-end, with its own
 criteria/template overrides applying to its leads.

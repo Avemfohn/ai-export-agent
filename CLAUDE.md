@@ -116,6 +116,30 @@ Create-only/idempotent: never touches an existing lead, safe to re-run.
 - `buyer_criteria` is passed into the prompt as raw JSON text, not parsed
   into a Java schema — the LLM interprets it holistically (same "stays
   opaque JSON" convention as `email_draft_template`).
+- `POST /api/leads/score/preview` scores a capped sample against candidate
+  criteria and **writes nothing**. It deliberately does *not* exclude
+  suppliers the tenant already has a lead for — that exclusion is why
+  re-running real scoring after a criteria edit appears to do nothing, so
+  applying it here would leave the preview permanently empty.
+
+### Tenant Settings (`com.aiexportagent.tenant.account`)
+
+`PATCH /api/tenant-settings` partially updates the free-form config columns
+(null/absent = leave unchanged, which is unambiguous because all of them are
+`NOT NULL`). `auto_approve_threshold` keeps its own endpoint precisely because
+`null` there means "off" rather than "unchanged".
+
+- Shape validation lives in `common/validation/SettingsJsonValidator` —
+  shared, static, Spring-free, and reused by campaign snapshots. It checks
+  shape only; `buyer_criteria` contents stay opaque by design.
+- **`email_sender_name` / `email_sender_address` are deliberately not
+  customer-editable.** They're coupled to SPF/DKIM and sending-domain
+  reputation, so they're configured at onboarding and exposed read-only.
+  `UpdateTenantSettingsRequest` simply doesn't declare them — no application
+  code anywhere calls their setters. Don't add them "for later".
+- The frontend guided criteria form edits a parsed document and spreads over
+  it, so keys it doesn't recognise survive a save. Any change there must keep
+  that property.
 
 ### AI Outreach Drafting (`com.aiexportagent.ai.outreach`)
 
@@ -142,6 +166,19 @@ integration yet). Create-only/idempotent, same as lead scoring.
   actually contains — there's no live "recent news" enrichment yet, so
   don't expect real news references, just sector/description-grounded
   customization of the template.
+- **The supported placeholder set is frozen at four** — `{{companyName}}`,
+  `{{contactFirstName}}`, `{{senderName}}`, `{{sector}}` — defined in
+  `ai/client/EmailTemplatePlaceholders.java` and mirrored in
+  `frontend/lib/email-template-placeholders.ts`. Substitution is an exact
+  literal match, so `{{ companyName }}` with spaces is NOT replaced and
+  ships verbatim. Adding a token means changing both files *and*
+  `MockAiClient.substitutePlaceholders`, or it silently reaches a real
+  recipient.
+- **A template with a blank subject or body is skipped, not drafted**
+  (`skippedNoTemplate` on the summary). The column default is `'{}'` and the
+  clients read `path("subject").asText("")`, so without this guard an
+  unconfigured tenant sends *empty emails*. The check runs before the AI call
+  so it costs nothing.
 - Same transaction-boundary lesson as `LeadScoringService`, applied from
   the start here: the orchestrating method is deliberately NOT
   `@Transactional` (the loop makes a synchronous external AI call per

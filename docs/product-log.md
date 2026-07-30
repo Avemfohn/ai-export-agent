@@ -19,6 +19,7 @@ of that file.
 
 | Date | Change | Area | Status |
 |---|---|---|---|
+| 2026-07-30 | Configuration UI (criteria + email template) | Config | 🟢 Shipped |
 | 2026-07-28 | Failed-send recovery & visibility | Outreach | 🟢 Shipped |
 | 2026-07-26 | Automated approve → draft → send pipeline | Outreach | 🟢 Shipped (mock sender) |
 | 2026-07-26 | Auto-approve threshold + bulk lead actions | Leads | 🟢 Shipped |
@@ -28,6 +29,70 @@ of that file.
 | 2026-07-25 | Dark/light mode + EN/TR translation | Platform | 🟢 Shipped |
 | 2026-07-25 | Rename to TargetOut AI | Brand | 🟢 Shipped |
 | 2026-07-25 | Multi-tenant scaffold (backend + dashboard) | Platform | 🟢 Shipped |
+
+---
+
+## 2026-07-30 — Configuration UI
+
+**Status:** 🟢 Shipped · **Area:** Config
+
+### The problem
+**The customer could not configure the product at all.** Buyer criteria drive
+every scoring decision, and the email template is the entire "AI personalises
+*your* pitch" premise — neither had an editing screen or an API to change them.
+The Settings page showed a static placeholder listing five fields
+(*Target Countries*, *Minimum Company Size*, *Preferred Languages*…) that
+matched no real data and could never be filled in. The core value proposition
+was unreachable by the person paying for it.
+
+### What shipped
+- **Buyer criteria editor** — friendly fields for keywords, minimum revenue,
+  target sectors and regions, plus an **Advanced (raw JSON)** mode for anything
+  the form doesn't cover.
+- **Email template editor** — subject, body, and separate "Instructions for the
+  AI", with a **preview** showing the email filled in for a sample company.
+- **"Test criteria"** — scores a handful of real companies against your criteria
+  and shows what would happen, without saving anything or creating leads.
+- **Sending identity** shown read-only.
+- Placeholder warnings for typos and unsupported tokens.
+
+### Decisions
+- **Criteria stay schema-free.** We validate *shape* (it must be a JSON object),
+  never contents. The AI reads criteria holistically, so locking them to a fixed
+  set of fields would make any criterion we didn't anticipate uneditable.
+- **The guided form never destroys what it doesn't understand.** Editing keywords
+  preserves every other key, including ones the form has no input for. This is
+  the property most likely to be broken by a future change — it's covered by an
+  explicit test.
+- **The raw-JSON editor is a mode, not a live mirror.** You apply your changes
+  explicitly, and saving is blocked until you do — otherwise the guided fields
+  would silently change under you.
+- **Sender name and address are visible but not editable.** They're tied to
+  SPF/DKIM and sending-domain reputation, so TargetOut configures them during
+  onboarding. The update endpoint physically cannot write them.
+- **Placeholder problems warn rather than block.** A real AI provider may resolve
+  a token the mock can't, so blocking would bake our provider choice into
+  validation.
+
+### Also fixed
+- **Blank templates no longer send blank emails.** An unconfigured template
+  produced an empty subject *and body*, which the pipeline sent anyway. Those
+  leads are now skipped and reported, before any AI call is made.
+- **`{{sector}}` now works.** It appeared in the shipped default template but was
+  never substituted, so it went out to recipients as literal text.
+
+### Verified
+Unknown criteria keys survive a guided-form save; raw-JSON mode blocks saving
+until applied and refuses to coerce values it can't represent; validation rejects
+bad shapes with readable messages; "Test criteria" creates nothing (lead count
+unchanged) and scores swing 20→100 purely from criteria; a blank template is
+skipped instead of sent; sender fields ignore an attempted overwrite; Turkish
+throughout. Tenant-isolation review passed with zero findings.
+
+### Deferred
+Campaign editing (next phase, reuses these editors). Editing a template still
+doesn't affect emails already queued — the count is surfaced as a warning, and a
+real cancel belongs with the Phase 4 kill switch.
 
 ---
 

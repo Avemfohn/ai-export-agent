@@ -16,6 +16,8 @@ import com.aiexportagent.tenant.lead.LeadStatus;
 import com.aiexportagent.tenant.lead.TenantLead;
 import com.aiexportagent.tenant.lead.TenantLeadService;
 import com.aiexportagent.tenant.outreach.OutreachEmailService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,7 @@ public class OutreachDraftingService {
     private final GlobalSupplierContactService globalSupplierContactService;
     private final OutreachEmailService outreachEmailService;
     private final AiClient aiClient;
+    private final ObjectMapper objectMapper;
 
     /**
      * Deliberately NOT @Transactional at this level — same reason as
@@ -70,18 +73,25 @@ public class OutreachDraftingService {
 
         int drafted = 0;
         int skippedNoContact = 0;
+        int skippedNoTemplate = 0;
         int failed = 0;
 
         for (TenantLead lead : candidates) {
             try {
-                Optional<DraftedEmail> draft = draftOneLead(settings, lead);
-                if (draft.isEmpty()) {
+                DraftAttempt attempt = draftOneLead(settings, lead);
+                if (attempt.skipReason() == SkipReason.NO_CONTACT) {
                     skippedNoContact++;
                     log.warn("Skipping outreach draft for lead {}: no contact on file", lead.getId());
                     continue;
                 }
+                if (attempt.skipReason() == SkipReason.NO_TEMPLATE) {
+                    skippedNoTemplate++;
+                    log.warn("Skipping outreach draft for lead {}: email template has no subject/body", lead.getId());
+                    continue;
+                }
+                DraftedEmail draft = attempt.email();
                 outreachEmailService.createDraftEmail(
-                        draft.get().leadId(), draft.get().toEmail(), draft.get().subject(), draft.get().body());
+                        draft.leadId(), draft.toEmail(), draft.subject(), draft.body());
                 drafted++;
             } catch (Exception e) {
                 // Catches both AI-call failures and DB-write failures — one bad lead
@@ -92,7 +102,8 @@ public class OutreachDraftingService {
             }
         }
 
-        return new OutreachDraftSummaryResponse(candidates.size(), drafted, skippedNoContact, failed);
+        return new OutreachDraftSummaryResponse(
+                candidates.size(), drafted, skippedNoContact, skippedNoTemplate, failed);
     }
 
     /**
@@ -109,18 +120,26 @@ public class OutreachDraftingService {
 
         int queued = 0;
         int skippedNoContact = 0;
+        int skippedNoTemplate = 0;
         int failed = 0;
 
         for (TenantLead lead : candidates) {
             try {
-                Optional<DraftedEmail> draft = draftOneLead(settings, lead);
-                if (draft.isEmpty()) {
+                DraftAttempt attempt = draftOneLead(settings, lead);
+                if (attempt.skipReason() == SkipReason.NO_CONTACT) {
                     skippedNoContact++;
                     log.warn("Skipping outreach queueing for lead {}: no contact on file", lead.getId());
                     continue;
                 }
+                if (attempt.skipReason() == SkipReason.NO_TEMPLATE) {
+                    skippedNoTemplate++;
+                    log.warn("Skipping outreach queueing for lead {}: email template has no subject/body",
+                            lead.getId());
+                    continue;
+                }
+                DraftedEmail draft = attempt.email();
                 outreachEmailService.createQueuedEmail(
-                        draft.get().leadId(), draft.get().toEmail(), draft.get().subject(), draft.get().body());
+                        draft.leadId(), draft.toEmail(), draft.subject(), draft.body());
                 queued++;
             } catch (Exception e) {
                 failed++;
@@ -128,7 +147,8 @@ public class OutreachDraftingService {
             }
         }
 
-        return new OutreachDraftSummaryResponse(candidates.size(), queued, skippedNoContact, failed);
+        return new OutreachDraftSummaryResponse(
+                candidates.size(), queued, skippedNoContact, skippedNoTemplate, failed);
     }
 
     private List<TenantLead> findUndraftedApprovedLeadsForCurrentTenant() {
@@ -137,15 +157,36 @@ public class OutreachDraftingService {
         return approvedLeads.stream().filter(lead -> !alreadyDrafted.contains(lead.getId())).toList();
     }
 
-    /** Empty means "skip, no contact on file" — distinct from a thrown exception (a hard failure). */
-    private Optional<DraftedEmail> draftOneLead(TenantSettings settings, TenantLead lead) {
+    /** Why a lead produced no draft. Countable non-errors, distinct from a thrown exception (a hard failure). */
+    private enum SkipReason {
+        NO_CONTACT,
+        NO_TEMPLATE
+    }
+
+    /** Exactly one of {@code email} / {@code skipReason} is non-null. */
+    private record DraftAttempt(DraftedEmail email, SkipReason skipReason) {
+
+        static DraftAttempt drafted(DraftedEmail email) {
+            return new DraftAttempt(email, null);
+        }
+
+        static DraftAttempt skipped(SkipReason reason) {
+            return new DraftAttempt(null, reason);
+        }
+    }
+
+    private DraftAttempt draftOneLead(TenantSettings settings, TenantLead lead) {
         GlobalSupplier supplier = globalSupplierService.getById(lead.getGlobalSupplierId());
         Optional<GlobalSupplierContact> contact = pickContact(supplier.getId(), globalSupplierContactService);
         if (contact.isEmpty()) {
-            return Optional.empty();
+            return DraftAttempt.skipped(SkipReason.NO_CONTACT);
         }
 
         String templateJson = resolveTemplate(settings, lead);
+        if (!hasUsableTemplate(templateJson)) {
+            return DraftAttempt.skipped(SkipReason.NO_TEMPLATE);
+        }
+
         AiEmailDraftRequest request = new AiEmailDraftRequest(
                 templateJson,
                 supplier.getCompanyName(),
@@ -157,7 +198,30 @@ public class OutreachDraftingService {
                 settings.getEmailSenderName());
 
         AiEmailDraftResult result = aiClient.draftEmail(request);
-        return Optional.of(new DraftedEmail(lead.getId(), contact.get().getEmail(), result.subject(), result.body()));
+        return DraftAttempt.drafted(
+                new DraftedEmail(lead.getId(), contact.get().getEmail(), result.subject(), result.body()));
+    }
+
+    /**
+     * Guards the blank-template hole: the column default is {@code '{}'}, and
+     * the drafting clients read {@code path("subject").asText("")}, so an
+     * unconfigured template silently yields an email with an empty subject and
+     * body that the automated pipeline would then send. Checked here — after
+     * template resolution but <em>before</em> the AI call — so it costs nothing
+     * with a real provider.
+     */
+    private boolean hasUsableTemplate(String templateJson) {
+        if (templateJson == null || templateJson.isBlank()) {
+            return false;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(templateJson);
+            return !node.path("subject").asText("").isBlank() && !node.path("body").asText("").isBlank();
+        } catch (Exception e) {
+            // Unparseable is also unusable; treated as a skip rather than a per-lead failure
+            // so a broken template doesn't look like a transient AI error in the logs.
+            return false;
+        }
     }
 
     private record DraftedEmail(UUID leadId, String toEmail, String subject, String body) {

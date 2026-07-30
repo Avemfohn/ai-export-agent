@@ -112,15 +112,26 @@ public class MockAiClient implements AiClient {
         return fullName.trim().split("\\s+")[0];
     }
 
+    /**
+     * Substitution is an exact literal match on each token — {@code {{ companyName }}}
+     * with spaces is NOT substituted and survives into the sent email. The
+     * settings-page template editor warns about both unknown tokens and spaced
+     * ones; keep {@link EmailTemplatePlaceholders} in sync with this method.
+     *
+     * <p>An unresolved value becomes empty rather than a fabricated fallback,
+     * deliberately: the template preview then shows the author the real gap
+     * instead of hiding it behind invented copy.
+     */
     private static String substitutePlaceholders(
             String template, AiEmailDraftRequest request, String contactFirstName) {
         if (template == null) {
             return "";
         }
         return template
-                .replace("{{companyName}}", nullToEmpty(request.companyName()))
-                .replace("{{contactFirstName}}", contactFirstName)
-                .replace("{{senderName}}", nullToEmpty(request.senderName()));
+                .replace(EmailTemplatePlaceholders.COMPANY_NAME, nullToEmpty(request.companyName()))
+                .replace(EmailTemplatePlaceholders.CONTACT_FIRST_NAME, contactFirstName)
+                .replace(EmailTemplatePlaceholders.SENDER_NAME, nullToEmpty(request.senderName()))
+                .replace(EmailTemplatePlaceholders.SECTOR, nullToEmpty(request.sector()));
     }
 
     private static String nullToEmpty(String value) {
