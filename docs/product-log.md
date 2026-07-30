@@ -9,6 +9,10 @@ user problem, not the diff.
 - "Decisions" captures choices we'd otherwise forget and re-litigate later.
 - Status: 🟢 Shipped · 🟡 Built, not enabled · ⚪ Planned
 
+**Companion doc:** [`phases.md`](phases.md) holds the forward roadmap. Every
+completed phase gets an entry here; see the maintenance checklist at the bottom
+of that file.
+
 ---
 
 ## At a glance
@@ -213,25 +217,6 @@ tenant data goes through an automated isolation review before it ships.
 
 ## What's next
 
-Agreed roadmap, phase by phase. Each phase gets its own plan and approval.
-
-| # | Phase | Why it matters |
-|---|---|---|
-| 1 | **Configuration UI** — edit buyer criteria + email template | **The customer currently cannot configure the product at all.** Biggest blocker. |
-| 1b | Campaign create/edit | Reuses the same editors |
-| 2 | Trade-fair file upload (Excel/CSV) | First route for *real* companies into the system |
-| 3 | Operator controls — run scoring from the UI, per-lead approve | Closes the loop on real data |
-| 4 | Send safety — kill switch, allowlist, daily cap, suppression list | Must land before any real email is sent |
-| 5 | Reply tracking + bounce handling | The product differentiator; activates warm-reply detection |
-| 6 | WhatsApp notifications | Alerting on warm replies |
-| 7 | Follow-up sequences | Today we send *one* email per lead, ever — most replies come from follow-ups |
-| 8 | Automated tests & hardening | Test coverage is currently near zero |
-
-### Deliberately deferred
-
-| Item | Un-defer when |
-|---|---|
-| Customer login / accounts | A second real client exists. One pilot doesn't need it yet. |
-| Google Maps / directory scraping | File upload proves the ingest path first |
-| **Unsubscribe link & GDPR basis** | **Before the first real email to an EU buyer** — legal gate, not optional |
-| Per-customer sender identity | Same gate — today everything would send from one shared address |
+See [`phases.md`](phases.md) for the forward roadmap, per-phase scope, and
+deferred items. That file is the plan; this one is the record. When a phase
+completes it moves from there to a new entry at the top of this file.
