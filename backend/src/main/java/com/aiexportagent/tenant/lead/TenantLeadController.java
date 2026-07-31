@@ -1,6 +1,7 @@
 package com.aiexportagent.tenant.lead;
 
 import com.aiexportagent.common.exception.ApiException;
+import com.aiexportagent.tenant.lead.dto.BulkAssignLeadCampaignRequest;
 import com.aiexportagent.tenant.lead.dto.BulkUpdateLeadStatusRequest;
 import com.aiexportagent.tenant.lead.dto.BulkUpdateLeadStatusResponse;
 import com.aiexportagent.tenant.lead.dto.TenantLeadResponse;
@@ -58,5 +59,16 @@ public class TenantLeadController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid status: " + request.status());
         }
         return tenantLeadService.bulkUpdateStatusForCurrentTenant(request.leadIds(), newStatus);
+    }
+
+    /**
+     * Assigns leads to a campaign, or removes them from one when
+     * {@code tenantCampaignId} is null. The campaign id is client-supplied and
+     * therefore resolved tenant-scoped in the service — a foreign id 404s.
+     */
+    @PatchMapping("/campaign/bulk")
+    public BulkUpdateLeadStatusResponse bulkAssignCampaign(@RequestBody BulkAssignLeadCampaignRequest request) {
+        return tenantLeadService.bulkAssignCampaignForCurrentTenant(
+                request.leadIds(), request.tenantCampaignId());
     }
 }

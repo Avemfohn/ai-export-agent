@@ -30,6 +30,8 @@
       "domain": "Domain",
       "country": "Country",
       "sector": "Sector",
+      "campaign": "Campaign",
+      "campaignNotSending": "Campaign not active — not sending",
       "status": "Status",
       "score": "Score"
     },
@@ -76,7 +78,9 @@
       "approving": "Approving…",
       "rejecting": "Rejecting…",
       "bulkActionError": "Something went wrong — please try again.",
-      "selectAllHeader": "Select all pending leads in view",
+      "assignToCampaign": "Assign to campaign",
+      "removeFromCampaign": "— Remove from campaign —",
+      "selectAllHeader": "Select all actionable leads in view",
       "selectRowLabel": "Select lead",
       "selectedSuffix": "selected"
     }
@@ -87,11 +91,44 @@
     "emptyTitle": "No campaigns yet",
     "emptyDescription": "Create an outreach campaign to start emailing qualified leads.",
     "noDescription": "No description provided.",
+    "newCampaign": "New campaign",
+    "edit": "Edit",
     "detail": {
       "outreachEmails": "Outreach Emails",
       "noEmails": "No outreach emails linked to this campaign yet",
+      "leads": "Leads in this campaign",
+      "leadsHelp": "Assign leads from the Leads page. Only campaigns that are Active send email.",
+      "noLeads": "No leads assigned to this campaign yet",
       "errorTitle": "Could not load this campaign",
       "errorDescription": "The backend API is unreachable. Make sure it is running at NEXT_PUBLIC_API_BASE_URL."
+    },
+    "form": {
+      "createTitle": "New Campaign",
+      "createDescription": "A campaign groups leads that should get the same pitch. Its email template starts as a copy of your default, and you can edit it afterwards.",
+      "editTitle": "Edit Campaign",
+      "editDescription": "Changes apply to leads that haven't been emailed yet.",
+      "name": "Name",
+      "namePlaceholder": "Q3 Home Textiles — North America",
+      "description": "Description",
+      "descriptionPlaceholder": "Who this campaign targets, and why.",
+      "activateNow": "Activate immediately",
+      "activateNowHelp": "Only active campaigns send email. Leave this off to set the campaign up first — its leads will wait until you activate it.",
+      "templateTitle": "Email template for this campaign",
+      "templateHelp": "Overrides your default template for leads in this campaign.",
+      "templateCopiedNote": "This campaign will start with a copy of your default email template. You can edit it once the campaign is created.",
+      "create": "Create campaign",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "nameRequired": "A name is required.",
+      "saveError": "Could not save — please try again."
+    },
+    "statusControl": {
+      "moveTo": "Move to",
+      "applying": "Applying…",
+      "willStopWarning": "approved leads will stop being emailed if you pause or archive this campaign.",
+      "currentlyBlocked": "approved leads are waiting — they won't be emailed until this campaign is active.",
+      "error": "Could not change the status — please try again."
     },
     "status": {
       "DRAFT": "Draft",

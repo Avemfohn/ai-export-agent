@@ -205,6 +205,33 @@ marks it `SENT` and cascades the lead to `EMAIL_SENT`).
   they must set `TenantContext` explicitly per iteration and clear it in a
   `finally` — `TenantContextFilter` isn't there to do it for them.
 
+### Campaigns (`com.aiexportagent.tenant.campaign`)
+
+A campaign groups leads that should get the same pitch, overriding the tenant's
+default email template via `email_draft_template_snapshot`.
+
+- **Only `ACTIVE` campaigns send.** `OutreachDraftingService` skips a lead whose
+  campaign isn't ACTIVE, counted as `skippedCampaignNotActive`. A lead with **no**
+  campaign is unaffected — that's every AI-scored lead, so inverting this check
+  would zero the pipeline. Blocked leads are counted, not filtered out of the
+  candidate set, or "no approved leads" becomes indistinguishable from "twelve
+  parked in a paused campaign".
+- **Never gate `OutreachSendingScheduler` by campaign.** Pausing a campaign does
+  not recall already-`QUEUED` mail, deliberately: `findOldestQueuedGlobal(1)`
+  returns the same oldest row every tick, so skipping it without a status change
+  is permanent head-of-line blocking — *no email would send again for any
+  tenant*. The gate belongs only in the drafter, before anything is queued.
+- **A campaign's template falls back to the tenant default when unusable**, so a
+  campaign created before a template was configured doesn't make its leads
+  permanently unemailable.
+- **Dependency direction is `lead → campaign`, never the reverse.**
+  `TenantLeadService` depends on `TenantCampaignService`; the reverse edge would
+  be a circular-dependency boot failure (`allow-circular-references=false`).
+- Creation copies the tenant's current template into the snapshot, and the copied
+  value is *not* validated — an unconfigured tenant must still be able to create
+  their first campaign.
+- `buyer_criteria_snapshot` is **read by nothing** and has no editor by design.
+
 **A failed send is never retried automatically, and that is deliberate.**
 `markFailed` records the error and stops; the lead stays `APPROVED`. Recovery
 is an explicit operator action — `POST /api/outreach-emails/{id}/requeue`

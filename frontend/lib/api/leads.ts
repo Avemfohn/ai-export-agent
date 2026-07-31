@@ -18,3 +18,18 @@ export function bulkUpdateLeadStatus(
     body: JSON.stringify({ leadIds, status }),
   });
 }
+
+/**
+ * Assigns leads to a campaign, or removes them from one when
+ * `tenantCampaignId` is null. Only pending/approved leads can move — once a
+ * lead has been emailed, its campaign no longer affects anything.
+ */
+export function bulkAssignLeadCampaign(
+  leadIds: string[],
+  tenantCampaignId: string | null,
+): Promise<BulkUpdateLeadStatusResponse> {
+  return apiFetch<BulkUpdateLeadStatusResponse>("/api/leads/campaign/bulk", {
+    method: "PATCH",
+    body: JSON.stringify({ leadIds, tenantCampaignId }),
+  });
+}

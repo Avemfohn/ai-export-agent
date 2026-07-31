@@ -8,12 +8,19 @@ package com.aiexportagent.ai.outreach.dto;
  * email. Like {@code skippedNoContact} this is a countable non-error: the lead
  * is re-evaluated on the next tick, and costs nothing until the template is
  * fixed.
+ *
+ * <p>{@code skippedCampaignNotActive} counts leads parked in a campaign that
+ * isn't ACTIVE. These are counted rather than filtered out of the candidate
+ * set on purpose: if they were filtered, {@code leadsEvaluated} would drop and
+ * "no approved leads" would be indistinguishable from "twelve leads sitting in
+ * a paused campaign".
  */
 public record OutreachDraftSummaryResponse(
         int leadsEvaluated,
         int drafted,
         int skippedNoContact,
         int skippedNoTemplate,
+        int skippedCampaignNotActive,
         int failed
 ) {
 }

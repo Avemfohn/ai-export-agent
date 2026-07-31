@@ -41,7 +41,16 @@ public class OutreachSendingScheduler {
     private int sendBatchSize;
 
     /**
-     * Processes the batch <strong>serially</strong>, and that is load-bearing:
+     * <strong>Never add a campaign-status check here.</strong> Pausing a
+     * campaign deliberately does not recall mail that is already QUEUED — the
+     * gate lives in {@code OutreachDraftingService}, before anything is
+     * queued. Skipping a row here without changing its status would be
+     * permanent head-of-line blocking: {@code findOldestQueuedGlobal(1)}
+     * returns that same oldest row on every tick, so <em>no email would ever
+     * send again, for any tenant</em>. It looks like a one-line improvement
+     * and it is a total outage. Surface the in-flight count in the UI instead.
+     *
+     * <p>Processes the batch <strong>serially</strong>, and that is load-bearing:
      * it's the only thing preventing a row from being sent twice, since
      * {@code markFailed}/{@code markSent} commit only after the attempt is
      * fully over, and {@code OutreachEmail} has no {@code @Version} column to

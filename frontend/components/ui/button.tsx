@@ -1,3 +1,11 @@
+"use client";
+
+// Radix's Slot (used by `asChild`) calls React.createContext at module load,
+// which doesn't exist in the React Server Components server build — so any
+// Server Component importing Button would fail at page-data collection with
+// "createContext is not a function". Button is a leaf, so the client boundary
+// costs nothing and `<Button asChild><Link/></Button>` still works.
+
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";

@@ -17,7 +17,10 @@ function resolveTitle(pathname: string, dict: Dictionary): string {
     "/dashboard/settings": dict.nav.settings,
   };
   if (titles[pathname]) return titles[pathname];
-  const segment = pathname.split("/").filter(Boolean).at(-2) ?? "";
+  // Match the section segment rather than counting back from the end — nested
+  // routes vary in depth (/campaigns/{id} vs /campaigns/{id}/edit), and
+  // counting backwards resolves the deeper one to the id itself.
+  const segment = pathname.split("/").filter(Boolean)[1] ?? "";
   return titles[`/dashboard/${segment}`] ?? dict.topbar.dashboard;
 }
 

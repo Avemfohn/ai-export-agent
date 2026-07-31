@@ -23,9 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates AI outreach-email drafting for the current tenant: for every
@@ -34,6 +37,14 @@ import java.util.UUID;
  * to one, else the tenant default), picks a contact, and has the AI
  * customize the template. Create-only / idempotent — never touches a lead
  * that already has an outreach_email.
+ *
+ * <p>Only leads whose campaign is ACTIVE are drafted; a lead with no campaign
+ * at all is unaffected (that's every AI-scored lead, so getting this backwards
+ * would zero the pipeline). Blocked leads are counted, not filtered — see
+ * {@link OutreachDraftSummaryResponse}. This is the <em>only</em> place the
+ * campaign gate belongs: see the warning on
+ * {@code OutreachSendingScheduler.sendQueuedEmails} for why it must never be
+ * applied to already-queued mail.
  *
  * <p>Two entry points sharing the same candidate-finding + AI-drafting
  * logic, differing only in the resulting row's initial status:
@@ -70,15 +81,22 @@ public class OutreachDraftingService {
     public OutreachDraftSummaryResponse draftForCurrentTenant() {
         TenantSettings settings = tenantSettingsService.getForCurrentTenant();
         List<TenantLead> candidates = findUndraftedApprovedLeadsForCurrentTenant();
+        Map<UUID, TenantCampaign> campaigns = loadCampaignsFor(candidates);
 
         int drafted = 0;
         int skippedNoContact = 0;
         int skippedNoTemplate = 0;
+        int skippedCampaignNotActive = 0;
         int failed = 0;
 
         for (TenantLead lead : candidates) {
             try {
-                DraftAttempt attempt = draftOneLead(settings, lead);
+                DraftAttempt attempt = draftOneLead(settings, lead, campaigns);
+                if (attempt.skipReason() == SkipReason.CAMPAIGN_NOT_ACTIVE) {
+                    skippedCampaignNotActive++;
+                    log.warn("Skipping outreach draft for lead {}: campaign is not ACTIVE", lead.getId());
+                    continue;
+                }
                 if (attempt.skipReason() == SkipReason.NO_CONTACT) {
                     skippedNoContact++;
                     log.warn("Skipping outreach draft for lead {}: no contact on file", lead.getId());
@@ -102,8 +120,8 @@ public class OutreachDraftingService {
             }
         }
 
-        return new OutreachDraftSummaryResponse(
-                candidates.size(), drafted, skippedNoContact, skippedNoTemplate, failed);
+        return new OutreachDraftSummaryResponse(candidates.size(), drafted, skippedNoContact,
+                skippedNoTemplate, skippedCampaignNotActive, failed);
     }
 
     /**
@@ -117,15 +135,22 @@ public class OutreachDraftingService {
     public OutreachDraftSummaryResponse queueForCurrentTenant() {
         TenantSettings settings = tenantSettingsService.getForCurrentTenant();
         List<TenantLead> candidates = findUndraftedApprovedLeadsForCurrentTenant();
+        Map<UUID, TenantCampaign> campaigns = loadCampaignsFor(candidates);
 
         int queued = 0;
         int skippedNoContact = 0;
         int skippedNoTemplate = 0;
+        int skippedCampaignNotActive = 0;
         int failed = 0;
 
         for (TenantLead lead : candidates) {
             try {
-                DraftAttempt attempt = draftOneLead(settings, lead);
+                DraftAttempt attempt = draftOneLead(settings, lead, campaigns);
+                if (attempt.skipReason() == SkipReason.CAMPAIGN_NOT_ACTIVE) {
+                    skippedCampaignNotActive++;
+                    log.warn("Skipping outreach queueing for lead {}: campaign is not ACTIVE", lead.getId());
+                    continue;
+                }
                 if (attempt.skipReason() == SkipReason.NO_CONTACT) {
                     skippedNoContact++;
                     log.warn("Skipping outreach queueing for lead {}: no contact on file", lead.getId());
@@ -147,8 +172,8 @@ public class OutreachDraftingService {
             }
         }
 
-        return new OutreachDraftSummaryResponse(
-                candidates.size(), queued, skippedNoContact, skippedNoTemplate, failed);
+        return new OutreachDraftSummaryResponse(candidates.size(), queued, skippedNoContact,
+                skippedNoTemplate, skippedCampaignNotActive, failed);
     }
 
     private List<TenantLead> findUndraftedApprovedLeadsForCurrentTenant() {
@@ -160,7 +185,8 @@ public class OutreachDraftingService {
     /** Why a lead produced no draft. Countable non-errors, distinct from a thrown exception (a hard failure). */
     private enum SkipReason {
         NO_CONTACT,
-        NO_TEMPLATE
+        NO_TEMPLATE,
+        CAMPAIGN_NOT_ACTIVE
     }
 
     /** Exactly one of {@code email} / {@code skipReason} is non-null. */
@@ -175,14 +201,33 @@ public class OutreachDraftingService {
         }
     }
 
-    private DraftAttempt draftOneLead(TenantSettings settings, TenantLead lead) {
+    private DraftAttempt draftOneLead(
+            TenantSettings settings, TenantLead lead, Map<UUID, TenantCampaign> campaigns) {
+        TenantCampaign campaign = campaignFor(lead, campaigns);
+        if (lead.getTenantCampaignId() != null) {
+            if (campaign == null) {
+                // Not a normal business state: the lead points at a campaign that
+                // isn't resolvable for this tenant. Blocking is the safe outcome,
+                // but log it distinctly — otherwise a cross-tenant or dangling
+                // link is indistinguishable from someone pausing a campaign, and
+                // the lead silently never sends.
+                log.error("Lead {} references campaign {} that is not resolvable for this tenant — "
+                                + "blocking outreach; this indicates a data-integrity problem, not a paused campaign",
+                        lead.getId(), lead.getTenantCampaignId());
+                return DraftAttempt.skipped(SkipReason.CAMPAIGN_NOT_ACTIVE);
+            }
+            if (!campaign.getStatus().allowsOutreach()) {
+                return DraftAttempt.skipped(SkipReason.CAMPAIGN_NOT_ACTIVE);
+            }
+        }
+
         GlobalSupplier supplier = globalSupplierService.getById(lead.getGlobalSupplierId());
         Optional<GlobalSupplierContact> contact = pickContact(supplier.getId(), globalSupplierContactService);
         if (contact.isEmpty()) {
             return DraftAttempt.skipped(SkipReason.NO_CONTACT);
         }
 
-        String templateJson = resolveTemplate(settings, lead);
+        String templateJson = resolveTemplate(settings, campaign);
         if (!hasUsableTemplate(templateJson)) {
             return DraftAttempt.skipped(SkipReason.NO_TEMPLATE);
         }
@@ -237,9 +282,32 @@ public class OutreachDraftingService {
                 .or(() -> contacts.stream().findFirst());
     }
 
-    private String resolveTemplate(TenantSettings settings, TenantLead lead) {
-        if (lead.getTenantCampaignId() != null) {
-            TenantCampaign campaign = tenantCampaignService.getByIdForCurrentTenant(lead.getTenantCampaignId());
+    /**
+     * Resolves every candidate lead's campaign in one query instead of one per
+     * lead. Leads with no campaign contribute nothing to the lookup.
+     */
+    private Map<UUID, TenantCampaign> loadCampaignsFor(List<TenantLead> leads) {
+        Set<UUID> campaignIds = leads.stream()
+                .map(TenantLead::getTenantCampaignId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        return tenantCampaignService.findByIdsForCurrentTenant(campaignIds);
+    }
+
+    /** Null both when the lead has no campaign and when its campaign isn't this tenant's. */
+    private TenantCampaign campaignFor(TenantLead lead, Map<UUID, TenantCampaign> campaigns) {
+        return lead.getTenantCampaignId() == null ? null : campaigns.get(lead.getTenantCampaignId());
+    }
+
+    /**
+     * A campaign's snapshot overrides the tenant default — but only if it's
+     * actually usable. Falling back protects campaigns created before the
+     * template was configured (the column default is {@code '{}'}), which
+     * would otherwise make every lead in them permanently unemailable even
+     * though the tenant has a perfectly good default.
+     */
+    private String resolveTemplate(TenantSettings settings, TenantCampaign campaign) {
+        if (campaign != null && hasUsableTemplate(campaign.getEmailDraftTemplateSnapshot())) {
             return campaign.getEmailDraftTemplateSnapshot();
         }
         return settings.getEmailDraftTemplate();

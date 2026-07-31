@@ -17,7 +17,7 @@ where we are right now.
 |---|---|---|---|
 | 0 | Failed-send recovery & visibility | ✅ Done | — |
 | 1 | Configuration UI | ✅ Done | — |
-| 1b | Campaign create/edit | ⚪ Not started | after 1 |
+| 1b | Campaigns (create/edit, assignment, gating) | ✅ Done | — |
 | 2 | Trade-fair upload ingestion | ⚪ Not started | — |
 | 3 | Operator controls + notifications | ⚪ Not started | after 2 |
 | 4 | Send safety | ⚪ Not started | **must precede 5** |
@@ -54,23 +54,31 @@ emails.
 
 ---
 
-## Phase 1b — Campaign create/edit
+## ✅ Phase 1b — Campaigns that do something
 
-**Goal:** manage campaigns, not just view them.
+**Delivered 2026-07-31** · see [product-log](product-log.md#2026-07-31--campaigns-that-do-something)
 
-**Why now:** campaigns carry their own criteria *and* template snapshots, so the
-editors are Phase 1's components plus name/description/status. Deferring this
-means building the same thing twice.
+Campaigns can be created and edited, leads can be assigned to them in bulk, and
+campaign status now genuinely controls whether outreach goes out. Previously a
+campaign could be named but never routed anything through — nothing could assign
+a lead to one, and status was a decorative label.
 
-**Scope:** create/update endpoints (campaigns are read-only today), create modal,
-typed form validation.
-
-**Carried over from Phase 1:**
-- Reuse `SettingsJsonValidator` for the snapshot columns — it was built shared
-  for exactly this.
-- Migrate `TenantCampaignResponse` to return real JSON rather than escaped
-  strings, matching what `TenantSettingsResponse` now does. Two conventions for
-  the same data is the thing to avoid.
+**Deliberately still open:**
+- **Per-campaign buyer criteria remain unused.** `buyer_criteria_snapshot` is read
+  by nothing; scoring uses only tenant settings. No editor was shipped for it —
+  a field that silently does nothing is worse than no field. Campaign-scoped
+  scoring is its own phase.
+- **No campaign filter on the leads table.** There's a campaign column, and
+  campaign detail lists its own leads, which covers "what's in this campaign".
+- **Editing a template doesn't affect already-queued mail**, and pausing a
+  campaign doesn't recall it. Deliberate — see the warning on
+  `OutreachSendingScheduler`. The kill switch is Phase 4.
+- **Schema backlog:** `tenant_leads.tenant_campaign_id` has a plain FK to
+  `tenant_campaigns(id)`, so the database permits a lead pointing at another
+  tenant's campaign. The application layer blocks it on the one write path and
+  fails safe on read, but a composite FK on `(id, tenant_id)` would make it
+  structurally impossible. Same gap on `scraping_jobs.tenant_campaign_id` and
+  `outreach_emails.tenant_lead_id`.
 
 **Done when:** a campaign can be created and edited end-to-end, with its own
 criteria/template overrides applying to its leads.

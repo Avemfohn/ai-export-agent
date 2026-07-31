@@ -3,6 +3,8 @@ import { Users } from "lucide-react";
 import { LeadTable } from "@/components/leads/lead-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getLeads } from "@/lib/api/leads";
+import { getCampaigns } from "@/lib/api/campaigns";
+import type { TenantCampaign } from "@/lib/types/campaign";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 
@@ -17,6 +19,16 @@ export default async function LeadsPage() {
     leads = await getLeads();
   } catch {
     errored = true;
+  }
+
+  // Needed to name each lead's campaign and to populate the bulk-assign picker.
+  // Joined here rather than denormalized onto the lead response, which is
+  // already N+1 on suppliers.
+  let campaigns: TenantCampaign[] = [];
+  try {
+    campaigns = await getCampaigns();
+  } catch {
+    // Non-critical: the campaign column falls back to "—" and assignment is unavailable.
   }
 
   if (errored) {
@@ -39,5 +51,5 @@ export default async function LeadsPage() {
     );
   }
 
-  return <LeadTable leads={leads} dict={dict} />;
+  return <LeadTable leads={leads} campaigns={campaigns} dict={dict} />;
 }

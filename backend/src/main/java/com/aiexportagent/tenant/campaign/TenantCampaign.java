@@ -3,6 +3,8 @@ package com.aiexportagent.tenant.campaign;
 import com.aiexportagent.common.audit.Auditable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,9 +30,9 @@ public class TenantCampaign extends Auditable {
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
-    /** CHECK constraint values: DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED. */
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30, nullable = false)
-    private String status;
+    private CampaignStatus status;
 
     // Simple String mapping for the JSONB column for this skeleton — no JSON<->POJO wiring yet.
     @JdbcTypeCode(SqlTypes.JSON)

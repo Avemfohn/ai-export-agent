@@ -30,6 +30,8 @@
       "domain": "Alan Adı",
       "country": "Ülke",
       "sector": "Sektör",
+      "campaign": "Kampanya",
+      "campaignNotSending": "Kampanya aktif değil — gönderim yok",
       "status": "Durum",
       "score": "Puan"
     },
@@ -76,7 +78,9 @@
       "approving": "Onaylanıyor…",
       "rejecting": "Reddediliyor…",
       "bulkActionError": "Bir şeyler ters gitti — lütfen tekrar deneyin.",
-      "selectAllHeader": "Görünümdeki onay bekleyen tüm adayları seç",
+      "assignToCampaign": "Kampanyaya ata",
+      "removeFromCampaign": "— Kampanyadan çıkar —",
+      "selectAllHeader": "Görünümdeki işlem yapılabilir tüm adayları seç",
       "selectRowLabel": "Adayı seç",
       "selectedSuffix": "seçildi"
     }
@@ -87,11 +91,44 @@
     "emptyTitle": "Henüz kampanya yok",
     "emptyDescription": "Nitelikli adaylara e-posta göndermeye başlamak için bir gönderim kampanyası oluşturun.",
     "noDescription": "Açıklama girilmedi.",
+    "newCampaign": "Yeni kampanya",
+    "edit": "Düzenle",
     "detail": {
       "outreachEmails": "Gönderilen E-postalar",
       "noEmails": "Bu kampanyaya bağlı e-posta henüz yok",
+      "leads": "Bu kampanyadaki adaylar",
+      "leadsHelp": "Adayları Adaylar sayfasından atayın. Yalnızca aktif kampanyalar e-posta gönderir.",
+      "noLeads": "Bu kampanyaya henüz aday atanmadı",
       "errorTitle": "Bu kampanya yüklenemedi",
       "errorDescription": "Sunucuya ulaşılamıyor. NEXT_PUBLIC_API_BASE_URL adresinde çalıştığından emin olun."
+    },
+    "form": {
+      "createTitle": "Yeni Kampanya",
+      "createDescription": "Kampanya, aynı mesajı alması gereken adayları gruplar. E-posta şablonu varsayılanınızın bir kopyasıyla başlar ve sonradan düzenleyebilirsiniz.",
+      "editTitle": "Kampanyayı Düzenle",
+      "editDescription": "Değişiklikler henüz e-posta gönderilmemiş adaylar için geçerlidir.",
+      "name": "Ad",
+      "namePlaceholder": "3. Çeyrek Ev Tekstili — Kuzey Amerika",
+      "description": "Açıklama",
+      "descriptionPlaceholder": "Bu kampanya kimi hedefliyor ve neden.",
+      "activateNow": "Hemen aktifleştir",
+      "activateNowHelp": "Yalnızca aktif kampanyalar e-posta gönderir. Önce kampanyayı hazırlamak için kapalı bırakın — adayları siz aktifleştirene kadar bekler.",
+      "templateTitle": "Bu kampanyanın e-posta şablonu",
+      "templateHelp": "Bu kampanyadaki adaylar için varsayılan şablonunuzun yerine geçer.",
+      "templateCopiedNote": "Bu kampanya, varsayılan e-posta şablonunuzun bir kopyasıyla başlayacak. Kampanya oluşturulduktan sonra düzenleyebilirsiniz.",
+      "create": "Kampanya oluştur",
+      "save": "Değişiklikleri kaydet",
+      "saving": "Kaydediliyor…",
+      "cancel": "İptal",
+      "nameRequired": "Ad zorunludur.",
+      "saveError": "Kaydedilemedi — lütfen tekrar deneyin."
+    },
+    "statusControl": {
+      "moveTo": "Şuraya taşı:",
+      "applying": "Uygulanıyor…",
+      "willStopWarning": "onaylanmış adaya, bu kampanyayı duraklatır veya arşivlerseniz e-posta gönderilmeyecek.",
+      "currentlyBlocked": "onaylanmış aday bekliyor — bu kampanya aktifleşene kadar e-posta gönderilmeyecek.",
+      "error": "Durum değiştirilemedi — lütfen tekrar deneyin."
     },
     "status": {
       "DRAFT": "Taslak",

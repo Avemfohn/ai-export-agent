@@ -19,6 +19,7 @@ of that file.
 
 | Date | Change | Area | Status |
 |---|---|---|---|
+| 2026-07-31 | Campaigns: create/edit, lead assignment, status gating | Campaigns | 🟢 Shipped |
 | 2026-07-30 | Configuration UI (criteria + email template) | Config | 🟢 Shipped |
 | 2026-07-28 | Failed-send recovery & visibility | Outreach | 🟢 Shipped |
 | 2026-07-26 | Automated approve → draft → send pipeline | Outreach | 🟢 Shipped (mock sender) |
@@ -29,6 +30,68 @@ of that file.
 | 2026-07-25 | Dark/light mode + EN/TR translation | Platform | 🟢 Shipped |
 | 2026-07-25 | Rename to TargetOut AI | Brand | 🟢 Shipped |
 | 2026-07-25 | Multi-tenant scaffold (backend + dashboard) | Platform | 🟢 Shipped |
+
+---
+
+## 2026-07-31 — Campaigns that do something
+
+**Status:** 🟢 Shipped · **Area:** Campaigns
+
+### The problem
+Campaigns were read-only — but the real problem was that they were **inert**.
+Nothing in the product could put a lead into a campaign, so every lead the AI
+had ever scored belonged to no campaign at all; only a handful of hand-seeded
+demo leads did. And campaign status was a decorative label that no code read, so
+a "Pause" button would have silently lied — emails would have kept going out.
+
+Shipping "create and edit campaigns" on top of that would have produced
+campaigns you could name but never route anything through.
+
+### What shipped
+- **Create and edit campaigns**, with their own email template.
+- **Assign leads in bulk** from the leads table, including removing them from a
+  campaign.
+- **Status now controls sending.** Only Active campaigns send; leads in a
+  Draft/Paused/Completed/Archived campaign are held back and counted.
+- **Campaign column on the leads table**, showing a clear "Campaign not active —
+  not sending" warning so held-back leads are never a mystery.
+- **Campaign detail lists its leads**, so assignment has a visible result.
+
+### Decisions
+- **A new campaign starts as a copy of your default email template.** That's what
+  a "snapshot" means, and it means a new campaign is immediately usable rather
+  than opening on an empty form that would silently block its leads.
+- **"Activate immediately" is on by default when creating.** Defaulting to Draft
+  would silently park every lead assigned to a brand-new campaign — the exact
+  confusion this phase set out to remove.
+- **Status transitions are restricted**, not free-form: a Completed campaign
+  can't quietly resume sending. Archive is reversible (back to Draft), because a
+  mis-archive shouldn't need a database edit — the same lesson as failed sends.
+- **Only pending/approved leads can be reassigned.** Once a lead has been
+  emailed, its campaign no longer changes anything, so offering the action would
+  be theatre. The toolbar now shows per-action eligibility ("Approve (0/1)")
+  rather than silently doing nothing.
+- **Pausing a campaign does not recall mail already queued.** This is deliberate
+  and load-bearing: filtering the send queue by campaign would make the oldest
+  blocked email permanently jam the queue for *every* tenant. The code carries an
+  explicit warning, because it looks like a one-line improvement.
+- **Per-campaign buyer criteria were left out.** They're stored but read by
+  nothing, and an editor for a field that does nothing is worse than no editor.
+
+### Verified
+Create returns the tenant's template pre-filled; blank names and illegal starting
+statuses rejected; every status transition rule enforced (including
+Archived→Active rejected, Archived→Draft allowed, and same-status idempotent);
+assigning to **another tenant's campaign returns 404 with nothing written**;
+already-emailed leads reported as skipped rather than silently ignored; a paused
+campaign holds its leads while a lead with no campaign still sends *in the same
+run*; reactivating releases them; queued mail still drains under a paused
+campaign. Turkish throughout. Tenant-isolation review passed with zero findings.
+
+### Fixed along the way
+A shared UI button couldn't be used by any server-rendered page — it pulled in a
+library that isn't available there, which would have broken the campaigns pages
+outright. Also fixed the page title on nested routes, which resolved to a raw id.
 
 ---
 

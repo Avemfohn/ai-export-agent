@@ -5,6 +5,8 @@ import com.aiexportagent.common.exception.NotFoundException;
 import com.aiexportagent.common.tenant.TenantContext;
 import com.aiexportagent.global.supplier.GlobalSupplier;
 import com.aiexportagent.global.supplier.GlobalSupplierService;
+import com.aiexportagent.tenant.campaign.TenantCampaignService;
+import com.aiexportagent.tenant.lead.dto.BulkAssignLeadCampaignRequest;
 import com.aiexportagent.tenant.lead.dto.BulkUpdateLeadStatusResponse;
 import com.aiexportagent.tenant.lead.dto.TenantLeadResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +27,18 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class TenantLeadService {
 
+    /**
+     * Assigning a lead to a campaign only does anything before outreach has
+     * happened: once a lead has an outreach_emails row, the drafter treats it
+     * as handled forever, so moving it between campaigns changes nothing. Any
+     * other status would be an action that silently does nothing.
+     */
+    private static final Set<LeadStatus> ASSIGNABLE_STATUSES =
+            Set.of(LeadStatus.PENDING_APPROVAL, LeadStatus.APPROVED);
+
     private final TenantLeadRepository tenantLeadRepository;
     private final GlobalSupplierService globalSupplierService;
+    private final TenantCampaignService tenantCampaignService;
 
     public List<TenantLeadResponse> listForCurrentTenant() {
         UUID tenantId = TenantContext.get();
@@ -106,6 +118,55 @@ public class TenantLeadService {
                 continue;
             }
             lead.setStatus(newStatus);
+            tenantLeadRepository.save(lead);
+            updated++;
+        }
+
+        return new BulkUpdateLeadStatusResponse(leadIds.size(), updated, skippedWrongStatus, notFoundOrForeignTenant);
+    }
+
+    /**
+     * Assigns leads to a campaign, or removes them from one when
+     * {@code tenantCampaignId} is null (see
+     * {@link BulkAssignLeadCampaignRequest} — null means unassign here, not
+     * "leave unchanged").
+     *
+     * <p>Same tenant-isolation shape as {@link #bulkUpdateStatusForCurrentTenant}:
+     * {@code leadIds} is never trusted, only ids returned by
+     * {@code findByIdInAndTenantId} for the CURRENT tenant are candidates. The
+     * target campaign id is client-supplied too, so it's resolved through
+     * {@code TenantCampaignService.getByIdForCurrentTenant} — a foreign or
+     * unknown campaign 404s rather than being attached to this tenant's leads.
+     */
+    @Transactional
+    public BulkUpdateLeadStatusResponse bulkAssignCampaignForCurrentTenant(
+            List<UUID> leadIds, UUID tenantCampaignId) {
+        if (leadIds == null || leadIds.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "leadIds must be a non-empty list");
+        }
+        if (tenantCampaignId != null) {
+            // Throws NotFoundException (404) if it isn't this tenant's campaign.
+            tenantCampaignService.getByIdForCurrentTenant(tenantCampaignId);
+        }
+
+        List<TenantLead> owned = tenantLeadRepository.findByIdInAndTenantId(leadIds, TenantContext.get());
+        Map<UUID, TenantLead> byId = owned.stream().collect(Collectors.toMap(TenantLead::getId, l -> l));
+
+        int updated = 0;
+        int skippedWrongStatus = 0;
+        int notFoundOrForeignTenant = 0;
+
+        for (UUID id : leadIds) {
+            TenantLead lead = byId.get(id);
+            if (lead == null) {
+                notFoundOrForeignTenant++;
+                continue;
+            }
+            if (!ASSIGNABLE_STATUSES.contains(lead.getStatus())) {
+                skippedWrongStatus++;
+                continue;
+            }
+            lead.setTenantCampaignId(tenantCampaignId);
             tenantLeadRepository.save(lead);
             updated++;
         }

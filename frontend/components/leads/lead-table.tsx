@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 import { LeadBulkToolbar } from "@/components/leads/lead-bulk-toolbar";
 import type { LeadStatus, TenantLead } from "@/lib/types/lead";
+import type { TenantCampaign } from "@/lib/types/campaign";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 const ALL = "ALL";
@@ -33,9 +34,11 @@ type SortColumn = "companyName" | "domain" | "country" | "sector" | "status" | "
 
 export function LeadTable({
   leads,
+  campaigns,
   dict,
 }: {
   leads: TenantLead[];
+  campaigns: TenantCampaign[];
   dict: Dictionary;
 }) {
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
@@ -94,21 +97,34 @@ export function LeadTable({
     );
   }
 
-  // Only PENDING_APPROVAL leads can actually be approved/rejected (the
-  // backend's review-gate rule) — restrict what "select all" and the header
-  // checkbox can grab to that set, so already-processed leads can never be
-  // selected for a bulk action in the first place.
-  const selectablePendingLeads = sortedLeads.filter((lead) => lead.status === "PENDING_APPROVAL");
+  // A lead is selectable if ANY bulk action could apply to it: approve/reject
+  // needs PENDING_APPROVAL, campaign assignment also accepts APPROVED (after
+  // outreach exists, its campaign no longer changes anything). The toolbar
+  // reports per-action eligibility, so a selection that's only valid for one
+  // action can't silently no-op on the other.
+  const selectableLeads = sortedLeads.filter(
+    (lead) => lead.status === "PENDING_APPROVAL" || lead.status === "APPROVED",
+  );
   const allFilteredSelected =
-    selectablePendingLeads.length > 0 && selectablePendingLeads.every((lead) => selectedIds.has(lead.id));
+    selectableLeads.length > 0 && selectableLeads.every((lead) => selectedIds.has(lead.id));
+
+  const selectedLeads = useMemo(
+    () => leads.filter((lead) => selectedIds.has(lead.id)),
+    [leads, selectedIds],
+  );
+
+  const campaignsById = useMemo(
+    () => new Map(campaigns.map((campaign) => [campaign.id, campaign])),
+    [campaigns],
+  );
 
   function toggleSelectAll() {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (allFilteredSelected) {
-        selectablePendingLeads.forEach((lead) => next.delete(lead.id));
+        selectableLeads.forEach((lead) => next.delete(lead.id));
       } else {
-        selectablePendingLeads.forEach((lead) => next.add(lead.id));
+        selectableLeads.forEach((lead) => next.add(lead.id));
       }
       return next;
     });
@@ -202,7 +218,8 @@ export function LeadTable({
 
       {selectedIds.size > 0 && (
         <LeadBulkToolbar
-          selectedIds={Array.from(selectedIds)}
+          selectedLeads={selectedLeads}
+          campaigns={campaigns}
           dict={dict}
           onDone={() => setSelectedIds(new Set())}
         />
@@ -215,7 +232,7 @@ export function LeadTable({
               <Checkbox
                 checked={allFilteredSelected}
                 onCheckedChange={toggleSelectAll}
-                disabled={selectablePendingLeads.length === 0}
+                disabled={selectableLeads.length === 0}
                 aria-label={dict.leads.bulk.selectAllHeader}
               />
             </TableHead>
@@ -235,6 +252,7 @@ export function LeadTable({
               {dict.leads.table.sector}
               {sortIcon("sector")}
             </TableHead>
+            <TableHead>{dict.leads.table.campaign}</TableHead>
             <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
               {dict.leads.table.status}
               {sortIcon("status")}
@@ -252,7 +270,7 @@ export function LeadTable({
           {sortedLeads.map((lead) => (
             <TableRow key={lead.id} data-state={selectedIds.has(lead.id) ? "selected" : undefined}>
               <TableCell>
-                {lead.status === "PENDING_APPROVAL" && (
+                {(lead.status === "PENDING_APPROVAL" || lead.status === "APPROVED") && (
                   <Checkbox
                     checked={selectedIds.has(lead.id)}
                     onCheckedChange={() => toggleRow(lead.id)}
@@ -268,6 +286,26 @@ export function LeadTable({
               <TableCell className="text-muted-foreground">{lead.domain}</TableCell>
               <TableCell className="text-muted-foreground">{lead.country}</TableCell>
               <TableCell className="text-muted-foreground">{lead.sector}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(() => {
+                  const campaign = lead.tenantCampaignId
+                    ? campaignsById.get(lead.tenantCampaignId)
+                    : undefined;
+                  if (!campaign) return "—";
+                  return (
+                    <>
+                      <span>{campaign.name}</span>
+                      {campaign.status !== "ACTIVE" && (
+                        // The lead is silently parked — say so, rather than
+                        // leaving the operator to wonder why nothing sends.
+                        <span className="block text-xs text-destructive">
+                          {dict.leads.table.campaignNotSending}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </TableCell>
               <TableCell>
                 <LeadStatusBadge status={lead.status} dict={dict} />
               </TableCell>
