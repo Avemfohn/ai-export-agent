@@ -79,6 +79,14 @@ a lead to one, and status was a decorative label.
   fails safe on read, but a composite FK on `(id, tenant_id)` would make it
   structurally impossible. Same gap on `scraping_jobs.tenant_campaign_id` and
   `outreach_emails.tenant_lead_id`.
+- **Auto-approve and campaigns don't compose.** Scoring never assigns a campaign,
+  and an auto-approved lead is drafted within ~60s, so there's no practical
+  window to assign it first — every auto-approved lead gets the tenant default
+  template, never a campaign's. Fine if auto-approve means "obvious match,
+  standard pitch"; a problem if you want auto-approved leads segmented by
+  region or product line. Closing it means routing leads to a campaign *at
+  creation* — which is the same change campaign-scoped scoring needs, so the
+  two belong together.
 
 **Done when:** a campaign can be created and edited end-to-end, with its own
 criteria/template overrides applying to its leads.
