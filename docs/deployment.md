@@ -77,6 +77,7 @@ SPRING_DATASOURCE_URL      = jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.
 SPRING_DATASOURCE_USERNAME = ${{Postgres.PGUSER}}
 SPRING_DATASOURCE_PASSWORD = ${{Postgres.PGPASSWORD}}
 DEV_TENANT_ID              = 00000000-0000-0000-0000-000000000001
+PORT                       = 8080
 SERVER_ADDRESS             = ::
 AI_PROVIDER                = mock
 EMAIL_PROVIDER             = mock
@@ -87,6 +88,12 @@ JAVA_TOOL_OPTIONS          = -XX:MaxRAMPercentage=75 -Djava.net.preferIPv6Addres
 Railway's private network is IPv6-only and Spring Boot binds IPv4 by default, so
 without it the frontend's proxy calls are refused and the backend looks like it
 failed to start when it's actually running fine.
+
+**`PORT=8080` is pinned on purpose.** The app reads `server.port: ${PORT:8080}`,
+so it follows whatever the platform injects — which is right in general, but it
+means the private address the frontend calls
+(`backend.railway.internal:8080`) is only correct if the port is known. Pinning
+it makes the pair deterministic. Change one and you must change the other.
 
 **`AI_PROVIDER` and `EMAIL_PROVIDER` are already the defaults — set them
 explicitly anyway.** On a public URL with no login they are the only thing
@@ -118,6 +125,22 @@ cold build. Then check the demo guide's pre-flight list against the public URL:
 
 If those are right, Flyway seeded correctly. Approve one lead and confirm it
 sends within ~90 seconds to prove the schedulers run in Railway too.
+
+---
+
+## Troubleshooting
+
+Most of these present as "the backend is broken" and have completely different
+causes, so match the symptom rather than guessing.
+
+| Symptom | Likely cause |
+|---|---|
+| Pages render fine, but **every button does nothing** | `NEXT_PUBLIC_API_BASE_URL` is set on the frontend. Remove it — browsers are then sent straight at a backend URL instead of through the proxy. |
+| Every API call returns **502** | Backend isn't up yet, or `INTERNAL_API_BASE_URL` has the wrong host/port. The 502 body names the URL it tried. |
+| Backend logs look healthy, frontend still can't reach it | `SERVER_ADDRESS=::` missing (bound IPv4 on an IPv6-only network), or `PORT` isn't 8080 while the frontend calls `:8080`. |
+| Backend won't start, database errors on boot | Postgres variable references wrong, or `-Djava.net.preferIPv6Addresses=true` missing from `JAVA_TOOL_OPTIONS`. |
+| Dashboard loads but every list is empty | Flyway didn't run. Check the backend boot log for `Successfully applied ... migrations`. |
+| Every API call returns **500**, env vars look correct | A `rewrites()` proxy was reintroduced in `next.config.ts`. See the warning above — the destination bakes in at build time. |
 
 ---
 
