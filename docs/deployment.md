@@ -103,8 +103,19 @@ addresses.
 ### Frontend variables
 
 ```
-INTERNAL_API_BASE_URL = http://backend.railway.internal:8080
+INTERNAL_API_BASE_URL = http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:8080
 ```
+
+**Use Railway's reference picker for this, don't type the hostname.** The
+private address is `<service-name>.railway.internal`, and the service is only
+called `backend` if you named it that — create it from the repo and Railway
+names it something like `ai-export-agent` instead. Hardcoding the wrong name
+produces a dashboard that loads perfectly with every list empty, and a
+`getaddrinfo ENOTFOUND` buried in the proxy's 502. Referencing the service makes
+it correct by construction and survives a later rename.
+
+The `:8080` still has to match the backend's pinned `PORT` — the reference only
+covers the hostname.
 
 That's all. Deliberately **no** `NEXT_PUBLIC_API_BASE_URL` — setting it would
 send browsers straight at a backend URL and reintroduce the exact bug the proxy
@@ -136,7 +147,8 @@ causes, so match the symptom rather than guessing.
 | Symptom | Likely cause |
 |---|---|
 | Pages render fine, but **every button does nothing** | `NEXT_PUBLIC_API_BASE_URL` is set on the frontend. Remove it — browsers are then sent straight at a backend URL instead of through the proxy. |
-| Every API call returns **502** | Backend isn't up yet, or `INTERNAL_API_BASE_URL` has the wrong host/port. The 502 body names the URL it tried. |
+| **502** with `ENOTFOUND` / `EAI_AGAIN` in `detail` | The hostname doesn't resolve — `INTERNAL_API_BASE_URL` names a service that doesn't exist. Copy the real one from the backend's Settings → Networking → Private Networking. |
+| **502** with `ECONNREFUSED` in `detail` | Host resolved, nothing accepted: backend crashed, `PORT` ≠ the port in the URL, or `SERVER_ADDRESS=::` missing. |
 | Backend logs look healthy, frontend still can't reach it | `SERVER_ADDRESS=::` missing (bound IPv4 on an IPv6-only network), or `PORT` isn't 8080 while the frontend calls `:8080`. |
 | Backend won't start, database errors on boot | Postgres variable references wrong, or `-Djava.net.preferIPv6Addresses=true` missing from `JAVA_TOOL_OPTIONS`. |
 | Dashboard loads but every list is empty | Flyway didn't run. Check the backend boot log for `Successfully applied ... migrations`. |
