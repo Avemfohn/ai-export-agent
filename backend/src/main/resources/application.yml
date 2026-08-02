@@ -1,5 +1,12 @@
 server:
-  port: 8080
+  # PORT is injected by most container platforms (Railway among them); the
+  # default keeps docker-compose and local runs on the published 8080.
+  port: ${PORT:8080}
+  # Railway's private network is IPv6-only, and Spring Boot binds IPv4 by
+  # default — so a backend reached only over that network must be started with
+  # SERVER_ADDRESS=::, or peer services get connection-refused and it looks
+  # like the app failed to boot rather than a binding mismatch.
+  address: ${SERVER_ADDRESS:0.0.0.0}
 
 spring:
   application:

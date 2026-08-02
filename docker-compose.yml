@@ -50,10 +50,14 @@ services:
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
-      # Server-side (SSR) fetches run inside this container, where
-      # "localhost" is the frontend container itself, not the backend one —
-      # so server-side code must reach it via the Docker Compose service name.
+      # Used by BOTH server-side fetches and the /api/* rewrite in
+      # next.config.ts: "localhost" inside this container is the frontend
+      # itself, not the backend, so it must go via the Compose service name.
+      #
+      # The browser never needs a backend URL — it calls this app's own origin
+      # and the rewrite forwards. Do not reintroduce NEXT_PUBLIC_API_BASE_URL
+      # here; it would point browsers at the visitor's own machine once this
+      # runs anywhere but your laptop.
       INTERNAL_API_BASE_URL: http://backend:8080
     ports:
       - "3000:3000"

@@ -1,15 +1,26 @@
 // Server-side code (Server Components, route handlers) runs inside the
-// frontend's own container/process, so "localhost" does NOT reach the
-// backend container over the Docker network — it must use the Docker
-// Compose service name instead, via the server-only INTERNAL_API_BASE_URL.
-// Client-side (browser) code always uses NEXT_PUBLIC_API_BASE_URL, since the
-// browser runs on the host and reaches the backend via its published port.
+// frontend's own container/process, so "localhost" does NOT reach the backend
+// container over the Docker network — it must use the Docker Compose service
+// name (or, on Railway, the private-network host) via the server-only
+// INTERNAL_API_BASE_URL.
+//
+// Client-side (browser) code deliberately uses **its own origin** and relies on
+// the `/api/*` rewrite in next.config.ts to reach the backend. Pointing the
+// browser straight at the backend would hardcode a URL that is only correct on
+// the machine running the stack: once deployed, "localhost:8080" means the
+// visitor's own computer, so every page would still render (Server Components
+// fetch server-side) while every mutation silently failed. Same-origin also
+// keeps these requests out of CORS entirely and lets the backend stay off the
+// public internet — which is load-bearing while there is no login.
+//
+// NEXT_PUBLIC_API_BASE_URL remains an escape hatch for pointing a local
+// frontend at some other backend; note Next inlines it at build time.
 const API_BASE_URL =
   typeof window === "undefined"
     ? (process.env.INTERNAL_API_BASE_URL ??
       process.env.NEXT_PUBLIC_API_BASE_URL ??
       "http://localhost:8080")
-    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080");
+    : (process.env.NEXT_PUBLIC_API_BASE_URL || window.location.origin);
 
 export class ApiError extends Error {
   status: number;

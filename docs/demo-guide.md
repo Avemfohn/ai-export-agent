@@ -7,7 +7,12 @@ Everything below runs on **seeded mock data**, a **mock AI provider** and a
 every click is real: real Postgres, real API calls, real scheduled jobs.
 
 > **Companion docs:** [`phases.md`](phases.md) — what's coming next ·
-> [`product-log.md`](product-log.md) — what shipped and why.
+> [`product-log.md`](product-log.md) — what shipped and why ·
+> [`deployment.md`](deployment.md) — putting this on a URL you can send someone.
+
+**Demoing remotely?** Everything below works unchanged against a deployed URL —
+substitute it for `http://localhost:3000` and skip the pre-flight `docker`
+commands. See [`deployment.md`](deployment.md).
 
 ---
 
