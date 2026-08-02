@@ -50,6 +50,31 @@ const STRIPPED_RESPONSE_HEADERS = new Set([
   "connection",
 ]);
 
+/**
+ * Unwrap `fetch`'s error chain into something diagnosable.
+ *
+ * Node's fetch reports every connection problem as the same useless
+ * `"fetch failed"`, hiding the real reason in `error.cause`. That distinction is
+ * the whole diagnosis when a deployment can't reach its backend:
+ * `ECONNREFUSED` means we found the host but nothing accepted the connection
+ * (wrong port, or bound to the wrong interface — e.g. IPv4 on an IPv6-only
+ * private network), while `ENOTFOUND`/`EAI_AGAIN` means the hostname itself
+ * doesn't resolve (wrong service name). Same symptom in the UI, opposite fixes.
+ */
+function describeFetchError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+
+  const parts: string[] = [error.message];
+  let cause: unknown = error.cause;
+  // Guard against a self-referential chain rather than trusting it terminates.
+  for (let depth = 0; cause instanceof Error && depth < 5; depth += 1) {
+    const code = (cause as NodeJS.ErrnoException).code;
+    parts.push(code ? `${code}: ${cause.message}` : cause.message);
+    cause = cause.cause;
+  }
+  return parts.join(" <- ");
+}
+
 async function proxy(request: NextRequest): Promise<Response> {
   // request.nextUrl keeps the /api prefix and the query string, both of which
   // the backend expects verbatim.
@@ -77,7 +102,7 @@ async function proxy(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         message: `Failed to reach backend at ${target}. Is the API running?`,
-        detail: error instanceof Error ? error.message : String(error),
+        detail: describeFetchError(error),
       },
       { status: 502 },
     );
