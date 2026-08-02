@@ -139,6 +139,68 @@ sends within ~90 seconds to prove the schedulers run in Railway too.
 
 ---
 
+## Branching: `main` develops, `production` deploys
+
+Railway tracks **`production`**, never `main`. Phase work lands on `main` and
+reaches the live demo only when you deliberately promote it — so a
+half-finished feature can't break the URL someone is looking at.
+
+Both branches share **one database**. That's a deliberate simplification, and it
+has a consequence worth knowing before you promote (see the warning below).
+
+### One-time setup
+
+```bash
+git checkout main
+git pull
+git checkout -b production
+git push -u origin production
+```
+
+Then in Railway, for **both** the backend and frontend services:
+**Settings → Source → Branch → `production`**. Miss one and you'll be running a
+mismatched pair, which is a genuinely confusing thing to debug.
+
+### Promoting
+
+```bash
+git checkout production
+git merge --ff-only main
+git push
+git checkout main
+```
+
+**`--ff-only` is the point, not a formality.** It refuses the merge unless
+`production` is a strict ancestor of `main`, which keeps "what's deployed" as an
+exact commit on `main`'s history — never a merge commit that exists nowhere
+else. If it errors, something was committed directly to `production`; fix that
+rather than dropping the flag.
+
+Railway redeploys on push. Re-run the pre-flight table above afterwards.
+
+### ⚠️ Promoting runs new migrations against the live demo database
+
+Flyway applies only *unapplied* migrations, so promoting Phase 2 will run its
+new `V8__…` against whatever state the demo is in. Two things follow:
+
+- **Migrations must stay forward-only and additive** — the existing convention.
+  A destructive one reaches real demo data with no staging step to catch it.
+- **New seed data won't appear in already-seeded rows.** `V2`/`V6`/`V7` ran
+  once; a later migration that changes seeded content only affects rows it
+  explicitly updates (the pattern `V7` already uses). For a pristine demo, wipe
+  the Postgres volume and let Flyway re-seed from scratch.
+
+If a phase ever needs a migration you wouldn't want to run blind against the
+demo, that's the signal to add a second Railway environment with its own
+database — deliberately not set up now, since a demo reset costs nothing.
+
+### Housekeeping
+
+The stale `docs/product-log` branch is fully merged and can be deleted:
+`git branch -d docs/product-log && git push origin --delete docs/product-log`
+
+---
+
 ## Troubleshooting
 
 Most of these present as "the backend is broken" and have completely different

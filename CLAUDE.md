@@ -319,6 +319,12 @@ integrations are wired in.
 - UUID primary keys everywhere (`gen_random_uuid()`).
 - Every table has `created_at` / `updated_at` timestamps.
 - Commit messages: conventional-commit-ish, imperative mood.
+- **`main` develops, `production` deploys.** Railway tracks `production`, which
+  is only ever fast-forwarded from `main` (`git merge --ff-only`) so what's live
+  is always an exact commit on `main`'s history. Never commit directly to
+  `production`. Both branches share one database, so **promoting runs any new
+  Flyway migration straight against the live demo data** — keep migrations
+  forward-only and additive. See [`docs/deployment.md`](docs/deployment.md).
 - **A package's Repository is never injected into another package's Service.**
   Cross-feature access always goes through the owning package's Service
   (e.g. `LeadScoringService` depends on `TenantSettingsService` and
