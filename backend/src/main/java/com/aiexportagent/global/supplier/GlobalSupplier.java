@@ -11,6 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 /**
  * SHARED POOL entity — no tenant_id. Deduped by domain across ALL tenants.
@@ -55,4 +56,22 @@ public class GlobalSupplier extends Auditable {
 
     @Column(name = "last_scraped_at")
     private OffsetDateTime lastScrapedAt;
+
+    /**
+     * The {@code scraping_jobs} row that contributed this supplier, when it came
+     * from an upload. Provenance without ownership: this table has no
+     * {@code tenant_id} by design, but the job it points at is tenant-scoped, so
+     * "which tenant contributed this company" stays answerable and a bad import
+     * can be cleaned up by job id.
+     *
+     * <p>Null for every row seeded before Phase 2, and nulled again if the
+     * contributing tenant is deleted (the FK is ON DELETE SET NULL — a
+     * shared-pool row must never block deleting a tenant).
+     *
+     * <p>Deliberately a raw id rather than a {@code @ManyToOne}: the global
+     * package has no dependency on the tenant package, and adding one would
+     * invert the layering described in CLAUDE.md.
+     */
+    @Column(name = "source_scraping_job_id")
+    private UUID sourceScrapingJobId;
 }

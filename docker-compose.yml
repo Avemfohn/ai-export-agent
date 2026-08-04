@@ -40,6 +40,10 @@ services:
       EMAIL_PROVIDER: mock
       MAILGUN_API_KEY: ""
       MAILGUN_DOMAIN: ""
+      # Trade-fair upload writes to the SHARED supplier pool and there is no
+      # login yet, so it ships disabled and is turned on explicitly here for
+      # local development. Do NOT default this to true on a public deployment.
+      UPLOAD_ENABLED: "true"
       # Placeholder for future integration, unused in Sprint 1 (mock data only):
       APIFY_TOKEN: ""
     ports:

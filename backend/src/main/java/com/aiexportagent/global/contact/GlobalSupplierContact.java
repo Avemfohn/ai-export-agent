@@ -44,10 +44,20 @@ public class GlobalSupplierContact extends Auditable {
     @Column(name = "is_primary", nullable = false)
     private boolean primary;
 
+    /**
+     * How much this contact is trusted, 0..1. Read by
+     * {@code OutreachDraftingService}: a contact below
+     * {@code app.outreach.min-contact-confidence} is never selected for
+     * automated outreach.
+     *
+     * <p>Nullable, and null means "never scored", not "untrusted" — it passes
+     * the gate. Only paths that deliberately assign a score (currently
+     * trade-fair upload) can push a contact below the threshold.
+     */
     @Column(name = "confidence_score", precision = 4, scale = 3)
     private BigDecimal confidenceScore;
 
-    /** CHECK constraint values: WEBSITE_SCRAPE, ENRICHMENT_API, MANUAL. */
+    /** CHECK constraint values: WEBSITE_SCRAPE, ENRICHMENT_API, MANUAL, TRADE_FAIR_UPLOAD. */
     @Column(name = "source", length = 50, nullable = false)
     private String source;
 }

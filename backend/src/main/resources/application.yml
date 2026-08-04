@@ -15,6 +15,26 @@ spring:
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      # Spring's default max-file-size is 1MB, which a real exhibitor workbook
+      # exceeds — without this the first genuine upload fails. Oversized files
+      # are turned into a clean 400 by GlobalExceptionHandler; there is no
+      # catch-all handler, so without that they would surface as a bare 500.
+      max-file-size: ${UPLOAD_MAX_FILE_SIZE:10MB}
+      max-request-size: ${UPLOAD_MAX_FILE_SIZE:10MB}
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          # Batching matters for the chunked upload insert path. Safe globally:
+          # ids come from @GeneratedValue(UUID) generated in memory, so batching
+          # actually engages (IDENTITY would silently disable it), and every
+          # other write path is either a single save or an unguarded loop, so
+          # moving constraint failures from save() to flush changes nothing.
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
 
 # Hardcoded dev tenant id used by TenantContextFilter until real tenant login
 # exists (see CLAUDE.md, Sprint 1 status). Overridable via DEV_TENANT_ID env var.
@@ -45,3 +65,18 @@ app:
       api-key: ${MAILGUN_API_KEY:}
       domain: ${MAILGUN_DOMAIN:}
       from-address: ${MAILGUN_FROM_ADDRESS:}
+  outreach:
+    # A contact scoring below this is never selected for automated outreach.
+    # Trade-fair uploads store freemail contacts at 0.30 precisely so they land
+    # under it — see SupplierUploadService. Seeded contacts are 0.600-0.910, so
+    # this default changes nothing that already worked.
+    min-contact-confidence: ${OUTREACH_MIN_CONTACT_CONFIDENCE:0.50}
+  upload:
+    # Trade-fair upload writes into the SHARED supplier pool, and there is no
+    # login yet (see CLAUDE.md Sprint 1 status). Off by default so a publicly
+    # reachable deployment cannot have its core data asset written to by
+    # strangers — same posture as the mock AI/email providers above. Local dev
+    # turns it on in docker-compose.
+    enabled: ${UPLOAD_ENABLED:false}
+    max-rows: ${UPLOAD_MAX_ROWS:5000}
+    chunk-size: ${UPLOAD_CHUNK_SIZE:500}

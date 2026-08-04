@@ -20,6 +20,12 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.6.0</springdoc.version>
+        <!--
+          Neither POI nor commons-csv is managed by the Spring Boot BOM, so both
+          versions must be pinned explicitly here.
+        -->
+        <poi.version>5.3.0</poi.version>
+        <commons-csv.version>1.11.0</commons-csv.version>
     </properties>
 
     <dependencies>
@@ -61,6 +67,26 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+
+        <!--
+          Trade-fair upload ingestion (Phase 2). poi-ooxml reads .xlsx; commons-csv
+          reads .csv — hand-rolled comma splitting breaks on quoted commas and
+          embedded newlines, which real exhibitor exports contain.
+
+          poi-ooxml transitively pulls log4j-api. Spring Boot's logging starter
+          already provides log4j-to-slf4j, so it is bridged rather than active —
+          no second logging backend.
+        -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv.version}</version>
         </dependency>
 
         <dependency>
