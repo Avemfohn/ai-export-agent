@@ -20,8 +20,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,6 +71,13 @@ public class OutreachDraftingService {
     private final ObjectMapper objectMapper;
 
     /**
+     * Contacts scoring below this are never selected for automated outreach.
+     * See {@link #pickContact} — this is a cross-tenant security control.
+     */
+    @Value("${app.outreach.min-contact-confidence:0.50}")
+    private BigDecimal minContactConfidence;
+
+    /**
      * Deliberately NOT @Transactional at this level — same reason as
      * {@code LeadScoringService.scoreForCurrentTenant}: the loop below makes
      * a synchronous external AI HTTP call per candidate, and holding one DB
@@ -87,6 +96,7 @@ public class OutreachDraftingService {
         int skippedNoContact = 0;
         int skippedNoTemplate = 0;
         int skippedCampaignNotActive = 0;
+        int skippedLowConfidenceContact = 0;
         int failed = 0;
 
         for (TenantLead lead : candidates) {
@@ -100,6 +110,12 @@ public class OutreachDraftingService {
                 if (attempt.skipReason() == SkipReason.NO_CONTACT) {
                     skippedNoContact++;
                     log.warn("Skipping outreach draft for lead {}: no contact on file", lead.getId());
+                    continue;
+                }
+                if (attempt.skipReason() == SkipReason.LOW_CONFIDENCE_CONTACT) {
+                    skippedLowConfidenceContact++;
+                    log.warn("Skipping outreach draft for lead {}: only low-confidence contacts on file",
+                            lead.getId());
                     continue;
                 }
                 if (attempt.skipReason() == SkipReason.NO_TEMPLATE) {
@@ -121,7 +137,7 @@ public class OutreachDraftingService {
         }
 
         return new OutreachDraftSummaryResponse(candidates.size(), drafted, skippedNoContact,
-                skippedNoTemplate, skippedCampaignNotActive, failed);
+                skippedNoTemplate, skippedCampaignNotActive, skippedLowConfidenceContact, failed);
     }
 
     /**
@@ -141,6 +157,7 @@ public class OutreachDraftingService {
         int skippedNoContact = 0;
         int skippedNoTemplate = 0;
         int skippedCampaignNotActive = 0;
+        int skippedLowConfidenceContact = 0;
         int failed = 0;
 
         for (TenantLead lead : candidates) {
@@ -154,6 +171,12 @@ public class OutreachDraftingService {
                 if (attempt.skipReason() == SkipReason.NO_CONTACT) {
                     skippedNoContact++;
                     log.warn("Skipping outreach queueing for lead {}: no contact on file", lead.getId());
+                    continue;
+                }
+                if (attempt.skipReason() == SkipReason.LOW_CONFIDENCE_CONTACT) {
+                    skippedLowConfidenceContact++;
+                    log.warn("Skipping outreach queueing for lead {}: only low-confidence contacts on file",
+                            lead.getId());
                     continue;
                 }
                 if (attempt.skipReason() == SkipReason.NO_TEMPLATE) {
@@ -173,7 +196,7 @@ public class OutreachDraftingService {
         }
 
         return new OutreachDraftSummaryResponse(candidates.size(), queued, skippedNoContact,
-                skippedNoTemplate, skippedCampaignNotActive, failed);
+                skippedNoTemplate, skippedCampaignNotActive, skippedLowConfidenceContact, failed);
     }
 
     private List<TenantLead> findUndraftedApprovedLeadsForCurrentTenant() {
@@ -185,6 +208,8 @@ public class OutreachDraftingService {
     /** Why a lead produced no draft. Countable non-errors, distinct from a thrown exception (a hard failure). */
     private enum SkipReason {
         NO_CONTACT,
+        /** Contacts exist, but none is trusted enough to email automatically. */
+        LOW_CONFIDENCE_CONTACT,
         NO_TEMPLATE,
         CAMPAIGN_NOT_ACTIVE
     }
@@ -222,9 +247,16 @@ public class OutreachDraftingService {
         }
 
         GlobalSupplier supplier = globalSupplierService.getById(lead.getGlobalSupplierId());
-        Optional<GlobalSupplierContact> contact = pickContact(supplier.getId(), globalSupplierContactService);
+        List<GlobalSupplierContact> allContacts =
+                globalSupplierContactService.findByGlobalSupplierId(supplier.getId());
+        Optional<GlobalSupplierContact> contact = pickContact(allContacts, minContactConfidence);
         if (contact.isEmpty()) {
-            return DraftAttempt.skipped(SkipReason.NO_CONTACT);
+            // Distinguish "nobody to email" from "somebody, but not trusted" —
+            // otherwise a supplier with a visible address that never gets
+            // contacted is completely unexplained.
+            return DraftAttempt.skipped(allContacts.isEmpty()
+                    ? SkipReason.NO_CONTACT
+                    : SkipReason.LOW_CONFIDENCE_CONTACT);
         }
 
         String templateJson = resolveTemplate(settings, campaign);
@@ -272,14 +304,38 @@ public class OutreachDraftingService {
     private record DraftedEmail(UUID leadId, String toEmail, String subject, String body) {
     }
 
-    /** Prefers the primary contact, falls back to the first available one, else empty. */
+    /**
+     * Prefers the primary contact, falls back to the first available one, else empty —
+     * considering only contacts that clear {@code app.outreach.min-contact-confidence}.
+     *
+     * <p><strong>The confidence filter is a cross-tenant security control, not a
+     * data-quality nicety.</strong> Trade-fair upload stores a freemail contact
+     * at 0.30 precisely so it lands below the threshold. Without this gate, an
+     * uploaded supplier for a domain the uploader does not own, carrying a
+     * contact address they control, would have another tenant's scoring pick
+     * the company up and this pipeline deliver that tenant's pitch and pricing
+     * straight to them — with no bug anywhere and every component behaving as
+     * designed. Do not "relax" it because some leads stop sending.
+     *
+     * <p>A null score means "never scored", not "untrusted", and passes: every
+     * contact that predates trade-fair upload has one, and no other path
+     * assigns a low score.
+     */
     private static Optional<GlobalSupplierContact> pickContact(
-            UUID globalSupplierId, GlobalSupplierContactService contactService) {
-        List<GlobalSupplierContact> contacts = contactService.findByGlobalSupplierId(globalSupplierId);
+            List<GlobalSupplierContact> allContacts, BigDecimal minConfidence) {
+        List<GlobalSupplierContact> contacts = allContacts.stream()
+                .filter(c -> isTrusted(c, minConfidence))
+                .toList();
         return contacts.stream()
                 .filter(GlobalSupplierContact::isPrimary)
                 .findFirst()
                 .or(() -> contacts.stream().findFirst());
+    }
+
+    /** BigDecimal comparison must use compareTo — 0.80 and 0.800 are not equals(). */
+    private static boolean isTrusted(GlobalSupplierContact contact, BigDecimal minConfidence) {
+        BigDecimal score = contact.getConfidenceScore();
+        return score == null || score.compareTo(minConfidence) >= 0;
     }
 
     /**

@@ -14,6 +14,14 @@ package com.aiexportagent.ai.outreach.dto;
  * set on purpose: if they were filtered, {@code leadsEvaluated} would drop and
  * "no approved leads" would be indistinguishable from "twelve leads sitting in
  * a paused campaign".
+ *
+ * <p>{@code skippedLowConfidenceContact} counts leads whose only contacts score
+ * below {@code app.outreach.min-contact-confidence} — currently freemail
+ * addresses imported from a trade-fair list. Kept separate from
+ * {@code skippedNoContact} because that counter means "no contact on file", and
+ * reporting it here would be a lie: there <em>is</em> a contact, it is just not
+ * trusted enough to email automatically. Conflating the two would hide the one
+ * signal that explains why a supplier with a visible email never gets contacted.
  */
 public record OutreachDraftSummaryResponse(
         int leadsEvaluated,
@@ -21,6 +29,7 @@ public record OutreachDraftSummaryResponse(
         int skippedNoContact,
         int skippedNoTemplate,
         int skippedCampaignNotActive,
+        int skippedLowConfidenceContact,
         int failed
 ) {
 }

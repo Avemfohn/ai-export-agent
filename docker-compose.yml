@@ -47,7 +47,13 @@ services:
       # Placeholder for future integration, unused in Sprint 1 (mock data only):
       APIFY_TOKEN: ""
     ports:
-      - "8080:8080"
+      # Host 8000, container 8080. Windows reserves the 8054-8153 range for
+      # Hyper-V/WinNAT, so binding 8080 on the host fails with "an attempt was
+      # made to access a socket in a way forbidden by its access permissions"
+      # even though nothing is using it. Only the host side moves: the
+      # container still listens on 8080, so INTERNAL_API_BASE_URL below and the
+      # Railway deployment are unaffected.
+      - "8000:8080"
 
   frontend:
     build: ./frontend
